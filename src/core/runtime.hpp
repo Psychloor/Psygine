@@ -16,27 +16,27 @@ namespace psygine::core
 {
     enum class GraphicsApi : std::uint8_t
     {
-        None = bgfx::RendererType::Noop,
-        Acg = bgfx::RendererType::Agc,
+        None       = bgfx::RendererType::Noop,
+        Acg        = bgfx::RendererType::Agc,
         Direct3D11 = bgfx::RendererType::Direct3D11,
         Direct3D12 = bgfx::RendererType::Direct3D12,
-        Metal = bgfx::RendererType::Metal,
-        Nvn = bgfx::RendererType::Nvn,
-        OpenGL = bgfx::RendererType::OpenGL,
-        Vulkan = bgfx::RendererType::Vulkan,
-        OpenGLES = bgfx::RendererType::OpenGLES,
-        Gnm = bgfx::RendererType::Gnm,
-        Software = bgfx::RendererType::Count,
-        Any = bgfx::RendererType::Count
+        Metal      = bgfx::RendererType::Metal,
+        Nvn        = bgfx::RendererType::Nvn,
+        OpenGL     = bgfx::RendererType::OpenGL,
+        Vulkan     = bgfx::RendererType::Vulkan,
+        OpenGLES   = bgfx::RendererType::OpenGLES,
+        Gnm        = bgfx::RendererType::Gnm,
+        Software   = bgfx::RendererType::Count,
+        Any        = bgfx::RendererType::Count
     };
 
     enum class Msaa : std::uint32_t // NOLINT(*-enum-size) - bgfx is 32 bit unsigned int
     {
         None = BGFX_RESET_NONE,
-        X2 = BGFX_RESET_MSAA_X2,
-        X4 = BGFX_RESET_MSAA_X4,
-        X8 = BGFX_RESET_MSAA_X8,
-        X16 = BGFX_RESET_MSAA_X16,
+        X2   = BGFX_RESET_MSAA_X2,
+        X4   = BGFX_RESET_MSAA_X4,
+        X8   = BGFX_RESET_MSAA_X8,
+        X16  = BGFX_RESET_MSAA_X16,
     };
 
     struct RuntimeConfig
@@ -59,6 +59,7 @@ namespace psygine::core
         std::size_t refreshRate = 60;
         std::chrono::duration<double> fixedTimestep = std::chrono::duration<double>(1 / 60.0);
         std::chrono::duration<double> maxTimestep = std::chrono::duration<double>(1);
+        std::size_t maxUpdatesPerTick = 10;
 
         // If set to 0. will take the first good matching one
         std::uint16_t gpuDeviceId = 0;
@@ -90,6 +91,8 @@ namespace psygine::core
         void fixedUpdate(double deltaTime);
         void update(double deltaTime);
         void render(double interpolation);
+
+        [[nodiscard]] std::uint32_t bgfxResetFlags() const;
 
         bool initialized_ = false;
         bool running_ = false;

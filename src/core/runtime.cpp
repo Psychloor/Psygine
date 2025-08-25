@@ -6,6 +6,7 @@
 
 #include <iostream>
 
+#include "time.hpp"
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
 #include "bgfx/c99/bgfx.h"
@@ -121,8 +122,6 @@ namespace psygine::core
         // iOS/tvOS (Metal)
 #if defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
         // Assign CAMetalLayer* to nwh.
-        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                        SDL_PROP_WINDOW_ANDROID_NATIVE_WINDOW_POINTER, nullptr);
 #endif
 
 #ifdef SDL_PLATFORM_EMSCRIPTEN
@@ -143,18 +142,7 @@ namespace psygine::core
         init.resolution.width = config_.width;
         init.resolution.height = config_.height;
 
-        auto resetFlags = config_.bgfxCustomResetFlags;
-        if (config_.vsync)
-        {
-            resetFlags |= BGFX_RESET_VSYNC;
-        }
-        if (config_.hdr10)
-        {
-            resetFlags |= BGFX_RESET_HDR10;
-        }
-        resetFlags |= static_cast<std::uint32_t>(config_.msaa);
-        init.resolution.reset = resetFlags;
-
+        init.resolution.reset = bgfxResetFlags();
 
         initialized_ = bgfx::init(init);
         if (!initialized_)
@@ -186,6 +174,58 @@ namespace psygine::core
             std::cerr << "Runtime not initialized!" << '\n' << std::flush;
             return;
         }
+        if (running_)
+        {
+            std::cerr << "Runtime already running!" << '\n' << std::flush;
+            return;
+        }
+
+        if (config_.debug)
+        {
+            bgfx::setDebug(BGFX_DEBUG_TEXT | BGFX_DEBUG_STATS);
+        }
+
+        bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x93CCEAFF, 1.0F, 0);
+        bgfx::setViewRect(0, 0, 0, config_.width, config_.height);
+
+        running_ = true;
+
+        utils::time::types::TimePoint now = utils::time::Now();
+
+        double accumulator = 0.0;
+        std::size_t updatesThisFrame = 0;
+        double const fixedTimestep = config_.fixedTimestep.count();
+        double const maxTimestep = config_.maxTimestep.count();
+
+        while (running_)
+        {
+            handleEvents();
+
+            double deltaTime = utils::time::ElapsedSinceSeconds(now);
+            now = utils::time::Now();
+
+            // Protect some against lag spikes and all
+            deltaTime = std::min(deltaTime, maxTimestep);
+            accumulator += deltaTime;
+
+            updatesThisFrame = 0;
+            while (accumulator >= fixedTimestep && updatesThisFrame < config_.maxUpdatesPerTick)
+            {
+                accumulator -= fixedTimestep;
+                ++updatesThisFrame;
+                fixedUpdate(fixedTimestep);
+            }
+
+            if (accumulator >= fixedTimestep)
+            {
+                accumulator = std::fmod(accumulator, fixedTimestep);
+            }
+
+            update(std::min(deltaTime, config_.maxTimestep.count()));
+
+            const auto interpolationFactor = static_cast<float>(accumulator / fixedTimestep);
+            render(interpolationFactor);
+        }
     }
 
     Runtime::Runtime(Runtime&& other) noexcept :
@@ -202,5 +242,56 @@ namespace psygine::core
         window_ = std::move(other.window_);
         config_ = std::move(other.config_);
         return *this;
+    }
+
+    void Runtime::handleEvents()
+    {
+        SDL_Event event;
+        while (SDL_PollEvent(&event))
+        {
+            switch (event.type)
+            {
+                case SDL_EVENT_QUIT: running_ = false;
+                    break;
+
+                case SDL_EVENT_WINDOW_RESIZED: const auto width = event.window.data1;
+                    const auto height = event.window.data2;
+                    bgfx::reset(width, height, bgfxResetFlags());
+                    bgfx::setViewRect(0, 0, 0, width, height);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    void Runtime::fixedUpdate(double deltaTime)
+    {}
+
+    void Runtime::update(double deltaTime)
+    {}
+
+    void Runtime::render(double interpolation)
+    {
+        bgfx::touch(0);
+
+        bgfx::frame();
+    }
+
+    std::uint32_t Runtime::bgfxResetFlags() const
+    {
+        std::uint32_t resetFlags = config_.bgfxCustomResetFlags;
+        if (config_.vsync)
+        {
+            resetFlags |= BGFX_RESET_VSYNC;
+        }
+        if (config_.hdr10)
+        {
+            resetFlags |= BGFX_RESET_HDR10;
+        }
+        resetFlags |= static_cast<std::uint32_t>(config_.msaa);
+
+        return resetFlags;
     }
 }
