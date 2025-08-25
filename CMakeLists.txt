@@ -196,10 +196,107 @@ check_required_components(@PROJECT_NAME@)
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/psygine
     )
 
-    # Install BGFX License
-    install(FILES
-            "${CMAKE_CURRENT_SOURCE_DIR}/bgfx-license"
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/shared/bgfx-license"
+    # Collect and install all license/notice files
+    set(LICENSE_INSTALL_DIR "${CMAKE_INSTALL_DATAROOTDIR}/licenses/${PROJECT_NAME}")
+
+    set(ALL_LICENSE_FILES "")
+
+    # Root LICENSE
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+        list(APPEND ALL_LICENSE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+    endif()
+
+    # Common third-party/notice filenames at repo root
+    foreach(f IN ITEMS
+            THIRD_PARTY_NOTICES.md THIRD_PARTY_NOTICES
+            THIRD_PARTY.md THIRD_PARTY
+            NOTICE NOTICES)
+        if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
+            list(APPEND ALL_LICENSE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
+        endif()
+    endforeach()
+
+    # Everything under LICENSES/ (recommended to store third-party license texts)
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES")
+        file(GLOB_RECURSE PROJECT_LICENSE_FILES
+                "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES/*")
+        list(APPEND ALL_LICENSE_FILES ${PROJECT_LICENSE_FILES})
+    endif()
+
+    # Try to include licenses from FetchContent bgfx stack if available
+    # (bgfx.cmake brings bgfx, bx, bimg)
+    set(_candidate_roots
+            "${bgfx_SOURCE_DIR}"
+            "${bgfx_SOURCE_DIR}/bgfx"
+            "${bgfx_SOURCE_DIR}/bx"
+            "${bgfx_SOURCE_DIR}/bimg")
+    foreach(root IN LISTS _candidate_roots)
+        if (EXISTS "${root}")
+            file(GLOB _cand
+                    "${root}/LICENSE" "${root}/LICENSE.*"
+                    "${root}/COPYING*" "${root}/COPYRIGHT*")
+            list(APPEND ALL_LICENSE_FILES ${_cand})
+        endif()
+    endforeach()
+
+    # Try to include SDL3 license if available via the CONFIG package
+    set(_sdl3_candidate_roots "")
+    # 1) If SDL3_DIR (from find_package CONFIG) is known, search under it
+    if (DEFINED SDL3_DIR AND EXISTS "${SDL3_DIR}")
+        list(APPEND _sdl3_candidate_roots "${SDL3_DIR}")
+        # Common install roots relative to config dir
+        list(APPEND _sdl3_candidate_roots
+             "${SDL3_DIR}/.."                   # package root
+             "${SDL3_DIR}/../.."               # prefix root
+             "${SDL3_DIR}/../../.."            # fallback up
+        )
+    endif()
+
+    # 2) Derive from include directories of SDL3::SDL3 target
+    if (TARGET SDL3::SDL3)
+        get_target_property(_sdl3_includes SDL3::SDL3 INTERFACE_INCLUDE_DIRECTORIES)
+        if (_sdl3_includes)
+            foreach(inc IN LISTS _sdl3_includes)
+                if (EXISTS "${inc}")
+                    list(APPEND _sdl3_candidate_roots
+                         "${inc}"
+                         "${inc}/.."            # include -> prefix root
+                         "${inc}/../.."         # include/SDL3 -> prefix root
+                         "${inc}/../../.."      # fallback up
+                    )
+                endif()
+            endforeach()
+        endif()
+        # Also try the imported location if present (may be empty for INTERFACE libs)
+        get_target_property(_sdl3_libloc SDL3::SDL3 IMPORTED_LOCATION)
+        if (_sdl3_libloc)
+            get_filename_component(_sdl3_libdir "${_sdl3_libloc}" DIRECTORY)
+            list(APPEND _sdl3_candidate_roots
+                 "${_sdl3_libdir}"
+                 "${_sdl3_libdir}/.."
+                 "${_sdl3_libdir}/../..")
+        endif()
+    endif()
+
+    if (_sdl3_candidate_roots)
+        list(REMOVE_DUPLICATES _sdl3_candidate_roots)
+        foreach(root IN LISTS _sdl3_candidate_roots)
+            if (EXISTS "${root}")
+                file(GLOB _sdl3_licenses
+                        "${root}/LICENSE" "${root}/LICENSE.*"
+                        "${root}/COPYING*" "${root}/COPYRIGHT*"
+                        "${root}/SDL3_LICENSE*" "${root}/docs/README-SDL*.md"
+                        "${root}/share/doc/SDL3/*LICENSE*")
+                list(APPEND ALL_LICENSE_FILES ${_sdl3_licenses})
+            endif()
+        endforeach()
+    endif()
+
+    list(REMOVE_DUPLICATES ALL_LICENSE_FILES)
+
+    install(FILES ${ALL_LICENSE_FILES}
+            DESTINATION "${LICENSE_INSTALL_DIR}"
     )
+
 
 endif ()
