@@ -12,23 +12,21 @@ namespace psygine::core::utils::time
 
     void Clock::start()
     {
-        if (running_) {
+        if (running()) {
             return;
         }
 
         start_ = Now();
         end_ = start_;
-        running_ = true;
     }
 
     void Clock::stop()
     {
-        if (!running_) {
+        if (!running()) {
             return;
         }
 
         end_ = Now();
-        running_ = false;
     }
 
     types::Duration Clock::restart()
@@ -43,7 +41,6 @@ namespace psygine::core::utils::time
     {
         start_ = Now();
         end_ = start_;
-        running_ = false;
     }
 
     types::Duration Clock::elapsed() const
@@ -63,11 +60,10 @@ namespace psygine::core::utils::time
 
     bool Clock::running() const
     {
-        return running_;
+        return start_ != end_;
     }
 
     Clock::Clock(Clock&& other) noexcept:
-        running_(other.running_),
         start_(other.start_),
         end_(other.end_)
     {}
@@ -78,7 +74,7 @@ namespace psygine::core::utils::time
         {
             return *this;
         }
-        running_ = other.running_;
+
         start_ = other.start_;
         end_ = other.end_;
         return *this;
@@ -90,7 +86,7 @@ namespace psygine::core::utils::time
         {
             return *this;
         }
-        running_ = other.running_;
+
         start_ = other.start_;
         end_ = other.end_;
         return *this;
