@@ -1,4 +1,7 @@
-﻿# Psygine
+﻿![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Third-Party Notices](https://img.shields.io/badge/Third--Party-Notices-blue)
+
+# Psygine
 
 Psygine is a small C++23 runtime scaffold built on SDL3 and bgfx. 
 It aims to provide a clean, portable foundation for high-performance, 
@@ -150,3 +153,8 @@ Bgfx uses platform-agnostic shaders compiled per-backend. You can author shaders
 ## Contributing
 
 Issues and PRs are welcome. Please keep changes focused, with clear motivation and platform testing when possible.
+
+# License
+
+This project is licensed under the [MIT License](LICENSE).  
+Third-party components are licensed separately (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
