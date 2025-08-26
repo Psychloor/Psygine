@@ -22,7 +22,7 @@ option(ENABLE_SANITIZERS "Enable Address/Undefined sanitizers for Clang/GCC (non
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # ---------------- SOURCE COLLECTION ----------------
-set(PROJECT_SOURCES
+set(PSYGINE_PROJECT_SOURCES
         src/psygine/core/runtime.cpp
 
         src/psygine/core/time.cpp
@@ -30,28 +30,28 @@ set(PROJECT_SOURCES
 )
 
 # Automatically collect public headers under src/psygine/**
-file(GLOB_RECURSE PROJECT_HEADERS CONFIGURE_DEPENDS
+file(GLOB_RECURSE PSYGINE_PROJECT_HEADERS CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/psygine/**/*.hpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/psygine/**/*.h"
 
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        FILES ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+        FILES ${PSYGINE_PROJECT_SOURCES} ${PSYGINE_PROJECT_HEADERS})
 
 # ---------------- LIBRARY ----------------
 add_library(${PROJECT_NAME} STATIC)
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_sources(${PROJECT_NAME}
-        PRIVATE ${PROJECT_SOURCES}
+        PRIVATE ${PSYGINE_PROJECT_SOURCES}
 )
 
 target_sources(${PROJECT_NAME}
         PUBLIC
         FILE_SET HEADERS TYPE HEADERS
         BASE_DIRS src
-        FILES ${PROJECT_HEADERS}
+        FILES ${PSYGINE_PROJECT_HEADERS}
 )
 
 # Modern way to enforce language standard
