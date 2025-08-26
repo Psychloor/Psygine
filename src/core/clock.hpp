@@ -1,6 +1,5 @@
-﻿//
-// Created by blomq on 2025-08-25.
-//
+﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+// SPDX-License-Identifier: MIT
 
 #ifndef PSYGINE_CLOCK_HPP
 #define PSYGINE_CLOCK_HPP

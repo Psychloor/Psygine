@@ -1,0 +1,22 @@
+﻿Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: psygine
+Source: https://github.com/Psychloor/psygine
+
+# Example: all images under assets/ are CC0-1.0
+Files: assets/images/**
+Copyright: 2025 Kevin Blomqvist
+License: CC0-1.0
+
+# Example: prebuilt shaders are MIT
+Files: assets/shaders/**.spv
+Copyright: 2025 Kevin Blomqvist
+License: MIT
+
+# Vendored third-party code with its own license
+Files: third_party/bgfx/**
+Copyright: 2010-2025 The bgfx authors
+License: BSD-2-Clause
+Comment:
+ The upstream project is bgfx. See THIRD_PARTY_NOTICES.md and LICENSES/BSD-2-Clause.txt.
+
+# If a dependency mixes multiple licenses per subfolder, split into more Files: blocks
