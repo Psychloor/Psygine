@@ -1792,3 +1792,4 @@ abstract.record*
 secring.*
 
 
+!/src/psygine/debug/

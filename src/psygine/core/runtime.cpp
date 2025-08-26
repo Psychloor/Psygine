@@ -7,12 +7,13 @@
 #include <cassert>
 #include <iostream>
 
-#include "psygine/core/time.hpp"
-
 #include "SDL3/SDL_metal.h"
 
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
+
+#include "psygine/core/time.hpp"
+#include "psygine/debug/assert.hpp"
 
 namespace
 {
@@ -36,7 +37,7 @@ namespace psygine::core
     Runtime::Runtime(RuntimeConfig config) :
         config_{std::move(config)}
     {
-        assert(config.maxUpdatesPerTick > 0 && "maxUpdatesPerTick must be greater than 0");
+        PSYGINE_ASSERT(config.maxUpdatesPerTick > 0, "maxUpdatesPerTick must be greater than 0");
     }
 
     Runtime::~Runtime()
