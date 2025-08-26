@@ -225,7 +225,7 @@ namespace psygine::core
             const double deltaTime = utils::time::ElapsedSinceSeconds(now);
             now = utils::time::Now();
 
-            accumulator += (std::min)(deltaTime, maxTimestep);
+            accumulator += std::min(deltaTime, maxTimestep);
 
             updatesThisFrame = 0;
             while (accumulator >= fixedTimestep && updatesThisFrame < config_.maxUpdatesPerTick)
@@ -243,7 +243,7 @@ namespace psygine::core
 
             update(deltaTime);
 
-            const double interpolation = accumulator > 0.0 ? (std::min)(accumulator / fixedTimestep, 0.999999) : 0.0;
+            const double interpolation = accumulator > 0.0 ? std::min(accumulator / fixedTimestep, 0.999999) : 0.0;
             render(interpolation);
 
             if (!config_.vsync && deltaTime < delayTimeStep)
