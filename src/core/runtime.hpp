@@ -14,6 +14,7 @@
 
 namespace psygine::core
 {
+
     /**
      * @brief Enumeration of graphics APIs supported by the rendering engine.
      *
@@ -35,6 +36,7 @@ namespace psygine::core
      * - `Software`: Special mode using software-level rendering. Often used for compatibility.
      * - `Any`: The engine will automatically select an appropriate API.
      */
+    // ReSharper disable CppInconsistentNaming
     enum class GraphicsApi : std::uint8_t
     {
         None       = bgfx::RendererType::Noop,
@@ -50,6 +52,7 @@ namespace psygine::core
         Software   = bgfx::RendererType::Count,
         Any        = bgfx::RendererType::Count
     };
+    // ReSharper restore CppInconsistentNaming
 
     /**
      * @brief Enumeration for Multi-Sample Anti-Aliasing (MSAA) levels.
@@ -135,6 +138,9 @@ namespace psygine::core
 
         // In case there's anything specific not added here
         std::uint32_t bgfxCustomResetFlags = BGFX_RESET_NONE;
+
+        // "#canvas" if you use a custom canvas id/element
+        std::string customEmscriptenCanvas;
     };
 
     class Runtime // NOLINT(*-virtual-class-destructor)

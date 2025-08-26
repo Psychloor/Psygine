@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <iostream>
 
 #include "time.hpp"
@@ -18,14 +17,16 @@
 
 namespace
 {
-    const char* RendererName(bgfx::RendererType::Enum t) {
-        switch (t) {
+    const char* RendererName(const bgfx::RendererType::Enum t)
+    {
+        switch (t)
+        {
             case bgfx::RendererType::Direct3D11: return "D3D11";
             case bgfx::RendererType::Direct3D12: return "D3D12";
-            case bgfx::RendererType::Vulkan:     return "Vulkan";
-            case bgfx::RendererType::Metal:      return "Metal";
-            case bgfx::RendererType::OpenGL:     return "OpenGL";
-            case bgfx::RendererType::OpenGLES:   return "OpenGLES";
+            case bgfx::RendererType::Vulkan: return "Vulkan";
+            case bgfx::RendererType::Metal: return "Metal";
+            case bgfx::RendererType::OpenGL: return "OpenGL";
+            case bgfx::RendererType::OpenGLES: return "OpenGLES";
             default: return "Unknown/Auto";
         }
     }
@@ -42,13 +43,15 @@ namespace psygine::core
     Runtime::~Runtime()
     {
         // Reverse order of initialization
-        if (initialized_) {
+        if (initialized_)
+        {
             bgfx::shutdown();
             initialized_ = false;
         }
         window_.reset();
 
-        if (SDL_WasInit(0) != 0) {
+        if (SDL_WasInit(0) != 0)
+        {
             shutdownGamepad();
             SDL_Quit();
         }
@@ -320,14 +323,14 @@ namespace psygine::core
         bgfx::setViewMode(0, bgfx::ViewMode::Sequential);
     }
 
-    Runtime::Runtime(Runtime&& other) noexcept
-        : initialized_{other.initialized_},
-          running_{other.running_},
-          debug_{other.debug_},
-          wireframe_{other.wireframe_},
-          window_{std::move(other.window_)},
-          metalView_{std::move(other.metalView_)},
-          config_{std::move(other.config_)}
+    Runtime::Runtime(Runtime&& other) noexcept :
+        initialized_{other.initialized_},
+        running_{other.running_},
+        debug_{other.debug_},
+        wireframe_{other.wireframe_},
+        window_{std::move(other.window_)},
+        metalView_{std::move(other.metalView_)},
+        config_{std::move(other.config_)}
     {
         other.initialized_ = false;
         other.running_ = false;
@@ -335,16 +338,18 @@ namespace psygine::core
         other.wireframe_ = false;
     }
 
-    Runtime& Runtime::operator=(Runtime&& other) noexcept {
-        if (this != &other) {
+    Runtime& Runtime::operator=(Runtime&& other) noexcept
+    {
+        if (this != &other)
+        {
             // optionally: if (initialized_) { /* tidy current */ }
-            window_     = std::move(other.window_);
-            metalView_  = std::move(other.metalView_);
-            config_     = std::move(other.config_);
-            initialized_= other.initialized_;
-            running_    = other.running_;
-            debug_      = other.debug_;
-            wireframe_  = other.wireframe_;
+            window_ = std::move(other.window_);
+            metalView_ = std::move(other.metalView_);
+            config_ = std::move(other.config_);
+            initialized_ = other.initialized_;
+            running_ = other.running_;
+            debug_ = other.debug_;
+            wireframe_ = other.wireframe_;
             other.initialized_ = false;
             other.running_ = false;
             other.debug_ = false;
@@ -503,7 +508,14 @@ namespace psygine::core
 #ifdef SDL_PLATFORM_EMSCRIPTEN
         // For web, bgfx expects a canvas selector string or nullptr for default canvas.
         // pd.nwh = (void*)"#canvas"; // if you use a custom canvas element ID
-        pd.nwh = nullptr; // let bgfx use the default canvas
+        if (config_.customEmscriptenCanvas.empty())
+        {
+            pd.nwh = nullptr; // let bgfx use the default canvas
+        }
+        else
+        {
+            pd.nwh = (void*)config_.customEmscriptenCanvas.c_str();
+        }
 #endif
 
         return true;
