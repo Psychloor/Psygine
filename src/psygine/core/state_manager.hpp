@@ -51,9 +51,29 @@ namespace psygine::core::state
         StateManager(StateManager&&) noexcept = default;
         StateManager& operator=(StateManager&&) noexcept = default;
 
-        // Push a new state on the stack. Flags control modal/overlay behavior.
+        /**
+         * @brief Pushes a new state onto the state stack with specified layer behavior.
+         *
+         * The new state is added to the stack and configured with the provided layer flags,
+         * which determine its interaction with events, updates, and rendering. This operation
+         * is queued and applied at the appropriate time during the state manager's lifecycle.
+         *
+         * @param state A unique pointer to the state to be pushed. The state must not be null.
+         * @param flags Configuration flags for the state's layer behavior, such as modal or overlay settings.
+         */
         void push(StatePtr state, LayerFlags flags = LayerFlags());
-        // Convenience: push a modal overlay (e.g., pause menu). By default, allows rendering below.
+
+        /**
+         * @brief Pushes a new modal state onto the state stack, optionally allowing rendering of the layers below.
+         *
+         * Adds a new state configured as modal to the state stack. Modal states block events
+         * and updates to lower layers by default. By specifying the `allowRenderBelow` parameter,
+         * it is possible to determine whether layers below the modal state should be rendered.
+         *
+         * @param state A unique pointer to the state to be pushed as a modal. The state must not be null.
+         * @param allowRenderBelow If true, the layers below this modal state will remain visible during rendering;
+         *                         otherwise, they will be hidden. Defaults to true.
+         */
         void pushModal(StatePtr state, const bool allowRenderBelow = true)
         {
             push(std::move(state), LayerFlags{true, allowRenderBelow});
