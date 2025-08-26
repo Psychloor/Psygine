@@ -207,7 +207,7 @@ namespace psygine::core
 
         running_ = true;
 
-        utils::time::types::TimePoint now = utils::time::Now();
+        auto now = utils::time::Now();
 
         double accumulator = 0.0;
         std::size_t updatesThisFrame = 0;
