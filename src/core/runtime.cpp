@@ -5,11 +5,12 @@
 #include "runtime.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 
 #include "time.hpp"
 
-#include  "SDL3/SDL_metal.h"
+#include "SDL3/SDL_metal.h"
 
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
@@ -18,18 +19,26 @@ namespace psygine::core
 {
     Runtime::Runtime(RuntimeConfig config) :
         config_{std::move(config)}
-    {}
+    {
+        assert(config.maxUpdatesPerTick > 0 && "maxUpdatesPerTick must be greater than 0");
+    }
 
     Runtime::~Runtime()
     {
         // Reverse order of initialization
-        bgfx::shutdown();
-        window_.reset();
-        if (initializedGamepad_)
+        // only shut down bgfx if we actually initialized it
+        if (bgfx::getInternalData() != nullptr)
         {
-            SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
+            bgfx::shutdown();
         }
-        SDL_Quit();
+        window_.reset();
+
+        // Only quit if any SDL subsystems are up
+        if (SDL_WasInit(0) != 0)
+        {
+            shutdownGamepad();
+            SDL_Quit();
+        }
     }
 
     bool Runtime::initialize()
@@ -68,12 +77,23 @@ namespace psygine::core
             sdlWindowFlags |= SDL_WINDOW_TRANSPARENT;
         }
 
+        if (config_.graphicsApi == GraphicsApi::Vulkan)
+        {
+            sdlWindowFlags |= SDL_WINDOW_VULKAN;
+        }
+        else if (config_.graphicsApi == GraphicsApi::OpenGL)
+        {
+            sdlWindowFlags |= SDL_WINDOW_OPENGL;
+        }
+
 #if defined(SDL_PLATFORM_MACOS) || defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
-        sdlWindowFlags |= SDL_WINDOW_METAL;
+        if (config_.graphicsApi == GraphicsApi::Metal || config_.graphicsApi == GraphicsApi::Any)
+        {
+            sdlWindowFlags |= SDL_WINDOW_METAL;
+        }
 #endif
 
-        window_ = SdlWindowPtr(SDL_CreateWindow(config_.title.c_str(), config_.width, config_.height, sdlWindowFlags),
-                               &SDL_DestroyWindow);
+        window_ = sdl_raii::CreateWindow(config_.title.c_str(), config_.width, config_.height, sdlWindowFlags);
         if (!window_)
         {
             std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << '\n' << std::flush;
@@ -100,10 +120,15 @@ namespace psygine::core
             : BGFX_PCI_ID_NONE;
         init.type = static_cast<bgfx::RendererType::Enum>(config_.graphicsApi);
 
-        init.resolution.width = config_.width;
-        init.resolution.height = config_.height;
+        int pxW = 0, pxH = 0;
+        SDL_GetWindowSizeInPixels(window_.get(), &pxW, &pxH);
+        init.resolution.width = static_cast<uint32_t>(pxW);
+        init.resolution.height = static_cast<uint32_t>(pxH);
+
         init.deviceId = config_.gpuDeviceId;
         init.resolution.reset = bgfxResetFlags();
+        init.profile = config_.profile;
+        init.debug = config_.debug;
 
         initialized_ = bgfx::init(init);
         if (!initialized_)
@@ -114,18 +139,36 @@ namespace psygine::core
             return false;
         }
 
+        debug_ = config_.debug;
+        wireframe_ = false;
+
+        bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, config_.rgbaClearColor, 1.0F, 0);
+        bgfx::setViewRect(0, 0, 0, static_cast<uint16_t>(pxW), static_cast<uint16_t>(pxH));
+
         return initialized_;
     }
 
     bool Runtime::initializeGamepad()
     {
-        if (initializedGamepad_)
+        if ((SDL_WasInit(SDL_INIT_GAMEPAD) & SDL_INIT_GAMEPAD) == SDL_INIT_GAMEPAD)
         {
             return true;
         }
 
-        initializedGamepad_ = SDL_InitSubSystem(SDL_INIT_GAMEPAD);
-        return initializedGamepad_;
+        if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+        {
+            std::cerr << "SDL_InitSubSystem failed: " << SDL_GetError() << '\n' << std::flush;
+            return false;
+        }
+        return true;
+    }
+
+    void Runtime::shutdownGamepad()
+    {
+        if ((SDL_WasInit(SDL_INIT_GAMEPAD) & SDL_INIT_GAMEPAD) == SDL_INIT_GAMEPAD)
+        {
+            SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
+        }
     }
 
     void Runtime::run()
@@ -146,28 +189,26 @@ namespace psygine::core
             bgfx::setDebug(BGFX_DEBUG_TEXT | BGFX_DEBUG_STATS);
         }
 
-        bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, config_.rgbaClearColor, 1.0F, 0);
-        bgfx::setViewRect(0, 0, 0, config_.width, config_.height);
-
         running_ = true;
 
         utils::time::types::TimePoint now = utils::time::Now();
 
         double accumulator = 0.0;
         std::size_t updatesThisFrame = 0;
-        double const fixedTimestep = config_.fixedTimestep.count();
-        double const maxTimestep = config_.maxTimestep.count();
+        const double fixedTimestep = config_.fixedTimestep.count();
+        const double maxTimestep = config_.maxTimestep.count();
+
+        const double delayTimeStep = 1.0 / 480.0;
 
         while (running_)
         {
             handleEvents();
 
-            double deltaTime = utils::time::ElapsedSinceSeconds(now);
+            // Protect some against lag spikes and all, kept within parentheses
+            const double deltaTime = utils::time::ElapsedSinceSeconds(now);
             now = utils::time::Now();
 
-            // Protect some against lag spikes and all
-            deltaTime = std::min(deltaTime, maxTimestep);
-            accumulator += deltaTime;
+            accumulator += (std::min)(deltaTime, maxTimestep);
 
             updatesThisFrame = 0;
             while (accumulator >= fixedTimestep && updatesThisFrame < config_.maxUpdatesPerTick)
@@ -177,6 +218,7 @@ namespace psygine::core
                 fixedUpdate(fixedTimestep);
             }
 
+            // Still too much lag, keep only the remainder
             if (accumulator >= fixedTimestep)
             {
                 accumulator = std::fmod(accumulator, fixedTimestep);
@@ -184,14 +226,29 @@ namespace psygine::core
 
             update(deltaTime);
 
-            const auto interpolationFactor = accumulator / fixedTimestep;
-            render(interpolationFactor);
+            const double interpolation = accumulator > 0.0 ? (std::min)(accumulator / fixedTimestep, 0.999999) : 0.0;
+            render(interpolation);
+
+            if (deltaTime < delayTimeStep)
+            {
+                SDL_DelayNS(1);
+            }
         }
     }
 
-    void Runtime::setIsRunning(const bool running)
+    void Runtime::quit()
     {
-        running_ = running;
+        if (!running_)
+        {
+            return;
+        }
+
+        if (!onQuitRequested())
+        {
+            return;
+        }
+
+        running_ = false;
     }
 
     bool Runtime::isRunning() const
@@ -204,9 +261,9 @@ namespace psygine::core
         return initialized_;
     }
 
-    bool Runtime::isInitializedGamepad() const
+    bool Runtime::isGamepadInitialized()
     {
-        return initializedGamepad_;
+        return (SDL_WasInit(SDL_INIT_GAMEPAD) & SDL_INIT_GAMEPAD) == SDL_INIT_GAMEPAD;
     }
 
     const RuntimeConfig& Runtime::getConfig() const
@@ -217,6 +274,35 @@ namespace psygine::core
     SDL_Window* Runtime::getWindow() const
     {
         return window_.get();
+    }
+
+    std::pair<int, int> Runtime::getBackBufferDimensions() const
+    {
+        int pxW = 0, pxH = 0;
+        SDL_GetWindowSizeInPixels(window_.get(), &pxW, &pxH);
+        return std::make_pair(pxW, pxH);
+    }
+
+    void Runtime::toggleDebug()
+    {
+        debug_ = !debug_;
+        bgfx::setDebug(bgfxDebugFlags());
+    }
+
+    void Runtime::toggleWireframe()
+    {
+        wireframe_ = !wireframe_;
+        bgfx::setDebug(bgfxDebugFlags());
+    }
+
+    void Runtime::set2DViewModeOrdering() const
+    {
+        if (!initialized_)
+        {
+            return;
+        }
+
+        setViewMode(0, bgfx::ViewMode::Sequential);
     }
 
     Runtime::Runtime(Runtime&& other) noexcept :
@@ -254,14 +340,18 @@ namespace psygine::core
                     break;
 
                 case SDL_EVENT_WINDOW_RESIZED:
+                case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
                 {
-                    const auto width = event.window.data1;
-                    const auto height = event.window.data2;
-                    bgfx::reset(width, height, bgfxResetFlags());
-                    bgfx::setViewRect(0, 0, 0, static_cast<uint16_t>(width), static_cast<uint16_t>(height));
+                    int pxW = 0, pxH = 0;
+                    SDL_GetWindowSizeInPixels(window_.get(), &pxW, &pxH);
+                    if (pxW > 0 && pxH > 0)
+                    {
+                        bgfx::reset(static_cast<uint32_t>(pxW), static_cast<uint32_t>(pxH), bgfxResetFlags());
+                        bgfx::setViewRect(0, 0, 0, static_cast<uint16_t>(pxW), static_cast<uint16_t>(pxH));
+                    }
                     onEvent(event);
+                    break;
                 }
-                break;
 
                 default: onEvent(event);
                     break;
@@ -286,6 +376,20 @@ namespace psygine::core
         onRender(interpolation);
 
         bgfx::frame();
+    }
+
+    std::uint32_t Runtime::bgfxDebugFlags() const
+    {
+        std::uint32_t flags = BGFX_DEBUG_NONE;
+        if (wireframe_)
+        {
+            flags |= BGFX_DEBUG_WIREFRAME;
+        }
+        if (debug_)
+        {
+            flags |= BGFX_DEBUG_TEXT | BGFX_DEBUG_STATS;
+        }
+        return flags;
     }
 
     std::uint32_t Runtime::bgfxResetFlags() const
@@ -344,7 +448,7 @@ namespace psygine::core
 
         // macOS (Metal)
 #ifdef SDL_PLATFORM_MACOS
-        metalView_ = SdlMetalViewPtr(SDL_Metal_CreateView(window_.get()), &SDL_Metal_DestroyView);
+        metalView_ = sdl_raii::CreateMetalView(window_.get());
         if (!metalView_)
         {
             std::cerr << "SDL_Metal_CreateView failed: " << SDL_GetError() << '\n' << std::flush;
@@ -355,7 +459,7 @@ namespace psygine::core
 
         // iOS/tvOS (Metal)
 #if defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
-        metalView_ = SdlMetalViewPtr(SDL_Metal_CreateView(window_.get()), &SDL_Metal_DestroyView);
+        metalView_ = sdl_raii::CreateMetalView(window_.get());
         if (!metalView_)
         {
             std::cerr << "SDL_Metal_CreateView failed: " << SDL_GetError() << '\n' << std::flush;
