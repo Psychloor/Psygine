@@ -107,13 +107,6 @@ if (ENABLE_SANITIZERS AND NOT MSVC)
     target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address,undefined)
 endif ()
 
-
-# Generate export header
-include(GenerateExportHeader)
-GENERATE_EXPORT_HEADER(${PROJECT_NAME}
-        EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/${PROJECT_NAME}_export.h
-)
-
 # Correctly expose include dirs (build + install)
 target_include_directories(${PROJECT_NAME}
         PUBLIC
@@ -308,12 +301,6 @@ check_required_components(@PROJECT_NAME@)
             "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
             "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-    )
-
-    # Export header still goes under include/<project> (e.g., include/psygine/...)
-    install(FILES
-            "${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}/${PROJECT_NAME}_export.h"
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
     )
 
     # Install all files under the LICENSES/ folder recursively, preserving structure
