@@ -56,6 +56,7 @@ namespace psygine::core::utils::time
      * @return The elapsed time in milliseconds as a double.
      */
     double ElapsedMilliseconds(types::TimePoint start, types::TimePoint end);
+
     /**
      * Calculates the elapsed time in microseconds between two time points.
      *
@@ -79,8 +80,8 @@ namespace psygine::core::utils::time
      *
      * @param start The starting time point used as the reference for elapsed time measurement.
      * @return A duration representing the time elapsed from the provided starting point to the current time*/
-
     types::Duration ElapsedSince(types::TimePoint start);
+
     /**
      * Computes the time elapsed, in seconds, since the specified starting time point.
      *

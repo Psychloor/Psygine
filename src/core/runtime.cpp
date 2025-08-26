@@ -4,9 +4,13 @@
 
 #include "runtime.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 #include "time.hpp"
+
+#include  "SDL3/SDL_metal.h"
+
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
 
@@ -18,15 +22,13 @@ namespace psygine::core
 
     Runtime::~Runtime()
     {
+        // Reverse order of initialization
         bgfx::shutdown();
-
         window_.reset();
-
         if (initializedGamepad_)
         {
             SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
         }
-
         SDL_Quit();
     }
 
@@ -62,6 +64,10 @@ namespace psygine::core
             sdlWindowFlags |= SDL_WINDOW_BORDERLESS;
         }
 
+#if defined(SDL_PLATFORM_MACOS) || defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
+        sdlWindowFlags |= SDL_WINDOW_METAL;
+#endif
+
         // Scoped so you can't use raw window ptr
         {
             SDL_Window* window = SDL_CreateWindow(config_.title.c_str(), config_.width, config_.height, sdlWindowFlags);
@@ -75,7 +81,15 @@ namespace psygine::core
         }
 
         bgfx::PlatformData pd{};
-        populatePlatformData(pd);
+        // ReSharper disable once CppDFAConstantConditions
+        if (!populatePlatformData(pd))
+        {
+            // ReSharper disable once CppDFAUnreachableCode
+            std::cerr << "populatePlatformData failed" << '\n' << std::flush;
+            window_.reset();
+            SDL_Quit();
+            return false;
+        }
         // ReSharper disable once CppRedundantQualifierADL
         bgfx::setPlatformData(pd);
 
@@ -131,7 +145,7 @@ namespace psygine::core
             bgfx::setDebug(BGFX_DEBUG_TEXT | BGFX_DEBUG_STATS);
         }
 
-        bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x93CCEAFF, 1.0F, 0);
+        bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, config_.rgbaClearColor, 1.0F, 0);
         bgfx::setViewRect(0, 0, 0, config_.width, config_.height);
 
         running_ = true;
@@ -147,7 +161,7 @@ namespace psygine::core
         {
             handleEvents();
 
-            double deltaTime = std::min(utils::time::ElapsedSinceSeconds(now), maxTimestep);
+            double deltaTime = utils::time::ElapsedSinceSeconds(now);
             now = utils::time::Now();
 
             // Protect some against lag spikes and all
@@ -264,7 +278,7 @@ namespace psygine::core
         return resetFlags;
     }
 
-    void Runtime::populatePlatformData(bgfx::PlatformData& pd)
+    bool Runtime::populatePlatformData(bgfx::PlatformData& pd)
     {
         pd.ndt = nullptr;
         pd.nwh = nullptr;
@@ -304,18 +318,34 @@ namespace psygine::core
 
         // macOS (Metal)
 #ifdef SDL_PLATFORM_MACOS
-        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                        SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+        metalView_ = SdlMetalViewPtr(SDL_Metal_CreateView(window_.get()), &SDL_Metal_DestroyView);
+        if (!metalView_)
+        {
+            std::cerr << "SDL_Metal_CreateView failed" << SDL_GetError() << '\n' << std::flush;
+            return false;
+        }
+        pd.nwh = SDL_Metal_GetLayer(metalView_.get());
+
 #endif
 
         // iOS/tvOS (Metal)
 #if defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
-        // Assign CAMetalLayer* to nwh.
+        metalView_ = SdlMetalViewPtr(SDL_Metal_CreateView(window_.get()), &SDL_Metal_DestroyView);
+        if (!metalView_)
+        {
+            std::cerr << "SDL_Metal_CreateView failed" << SDL_GetError() << '\n' << std::flush;
+            return false;
+        }
+        pd.nwh = SDL_Metal_GetLayer(metalView_.get());
 #endif
 
+
 #ifdef SDL_PLATFORM_EMSCRIPTEN
-        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                        SDL_PROP_WINDOW_WEB_GLCONTEXT_POINTER, nullptr);
+        // For web, bgfx expects a canvas selector string or nullptr for default canvas.
+        // pd.nwh = (void*)"#canvas"; // if you use a custom canvas element ID
+        pd.nwh = nullptr; // let bgfx use the default canvas
 #endif
+
+        return true;
     }
 }

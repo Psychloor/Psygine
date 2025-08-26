@@ -57,9 +57,14 @@ target_sources(psygine
 # Modern way to enforce language standard
 target_compile_features(psygine PUBLIC cxx_std_23)
 
+# UTF 8 support
+if (MSVC)
+    target_compile_options(psygine PUBLIC /utf-8)
+endif ()
+
 # Warnings (per-compiler)
 if (MSVC)
-    target_compile_options(psygine PRIVATE /W4 /permissive- /Zc:__cplusplus)
+    target_compile_options(psygine PRIVATE /W3 /permissive- /Zc:__cplusplus)
 else ()
     target_compile_options(psygine PRIVATE -Wall -Wextra -Wpedantic)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -104,6 +109,8 @@ target_include_directories(psygine
 
 # ---------------- DEPENDENCIES ----------------
 include(FetchContent)
+
+# bgfx
 FetchContent_Declare(
         bgfx
         GIT_REPOSITORY https://github.com/bkaradzic/bgfx.cmake.git
@@ -111,7 +118,6 @@ FetchContent_Declare(
         GIT_SHALLOW FALSE
 )
 FetchContent_MakeAvailable(bgfx)
-
 
 # SDL3
 find_package(SDL3 CONFIG REQUIRED)
@@ -132,7 +138,7 @@ set_target_properties(psygine PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
         EXPORT_NAME psygine
-        # FOLDER "Libraries" # shows up as 'Libraries/MyLib' in IDEs
+        FOLDER "Libraries" # shows up as 'Libraries/psygine' in IDEs
 )
 
 # ---------------- INSTALL / EXPORT ----------------
@@ -204,24 +210,24 @@ check_required_components(@PROJECT_NAME@)
     # Root LICENSE
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
         list(APPEND ALL_LICENSE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-    endif()
+    endif ()
 
     # Common third-party/notice filenames at repo root
-    foreach(f IN ITEMS
+    foreach (f IN ITEMS
             THIRD_PARTY_NOTICES.md THIRD_PARTY_NOTICES
             THIRD_PARTY.md THIRD_PARTY
             NOTICE NOTICES)
         if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
             list(APPEND ALL_LICENSE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
-        endif()
-    endforeach()
+        endif ()
+    endforeach ()
 
     # Everything under LICENSES/ (recommended to store third-party license texts)
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES")
         file(GLOB_RECURSE PROJECT_LICENSE_FILES
                 "${CMAKE_CURRENT_SOURCE_DIR}/LICENSES/*")
         list(APPEND ALL_LICENSE_FILES ${PROJECT_LICENSE_FILES})
-    endif()
+    endif ()
 
     # Try to include licenses from FetchContent bgfx stack if available
     # (bgfx.cmake brings bgfx, bx, bimg)
@@ -230,14 +236,14 @@ check_required_components(@PROJECT_NAME@)
             "${bgfx_SOURCE_DIR}/bgfx"
             "${bgfx_SOURCE_DIR}/bx"
             "${bgfx_SOURCE_DIR}/bimg")
-    foreach(root IN LISTS _candidate_roots)
+    foreach (root IN LISTS _candidate_roots)
         if (EXISTS "${root}")
             file(GLOB _cand
                     "${root}/LICENSE" "${root}/LICENSE.*"
                     "${root}/COPYING*" "${root}/COPYRIGHT*")
             list(APPEND ALL_LICENSE_FILES ${_cand})
-        endif()
-    endforeach()
+        endif ()
+    endforeach ()
 
     # Try to include SDL3 license if available via the CONFIG package
     set(_sdl3_candidate_roots "")
@@ -246,41 +252,41 @@ check_required_components(@PROJECT_NAME@)
         list(APPEND _sdl3_candidate_roots "${SDL3_DIR}")
         # Common install roots relative to config dir
         list(APPEND _sdl3_candidate_roots
-             "${SDL3_DIR}/.."                   # package root
-             "${SDL3_DIR}/../.."               # prefix root
-             "${SDL3_DIR}/../../.."            # fallback up
+                "${SDL3_DIR}/.."                   # package root
+                "${SDL3_DIR}/../.."               # prefix root
+                "${SDL3_DIR}/../../.."            # fallback up
         )
-    endif()
+    endif ()
 
     # 2) Derive from include directories of SDL3::SDL3 target
     if (TARGET SDL3::SDL3)
         get_target_property(_sdl3_includes SDL3::SDL3 INTERFACE_INCLUDE_DIRECTORIES)
         if (_sdl3_includes)
-            foreach(inc IN LISTS _sdl3_includes)
+            foreach (inc IN LISTS _sdl3_includes)
                 if (EXISTS "${inc}")
                     list(APPEND _sdl3_candidate_roots
-                         "${inc}"
-                         "${inc}/.."            # include -> prefix root
-                         "${inc}/../.."         # include/SDL3 -> prefix root
-                         "${inc}/../../.."      # fallback up
+                            "${inc}"
+                            "${inc}/.."            # include -> prefix root
+                            "${inc}/../.."         # include/SDL3 -> prefix root
+                            "${inc}/../../.."      # fallback up
                     )
-                endif()
-            endforeach()
-        endif()
+                endif ()
+            endforeach ()
+        endif ()
         # Also try the imported location if present (may be empty for INTERFACE libs)
         get_target_property(_sdl3_libloc SDL3::SDL3 IMPORTED_LOCATION)
         if (_sdl3_libloc)
             get_filename_component(_sdl3_libdir "${_sdl3_libloc}" DIRECTORY)
             list(APPEND _sdl3_candidate_roots
-                 "${_sdl3_libdir}"
-                 "${_sdl3_libdir}/.."
-                 "${_sdl3_libdir}/../..")
-        endif()
-    endif()
+                    "${_sdl3_libdir}"
+                    "${_sdl3_libdir}/.."
+                    "${_sdl3_libdir}/../..")
+        endif ()
+    endif ()
 
     if (_sdl3_candidate_roots)
         list(REMOVE_DUPLICATES _sdl3_candidate_roots)
-        foreach(root IN LISTS _sdl3_candidate_roots)
+        foreach (root IN LISTS _sdl3_candidate_roots)
             if (EXISTS "${root}")
                 file(GLOB _sdl3_licenses
                         "${root}/LICENSE" "${root}/LICENSE.*"
@@ -288,9 +294,9 @@ check_required_components(@PROJECT_NAME@)
                         "${root}/SDL3_LICENSE*" "${root}/docs/README-SDL*.md"
                         "${root}/share/doc/SDL3/*LICENSE*")
                 list(APPEND ALL_LICENSE_FILES ${_sdl3_licenses})
-            endif()
-        endforeach()
-    endif()
+            endif ()
+        endforeach ()
+    endif ()
 
     list(REMOVE_DUPLICATES ALL_LICENSE_FILES)
 

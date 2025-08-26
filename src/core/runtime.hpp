@@ -65,6 +65,8 @@ namespace psygine::core
         std::uint16_t gpuDeviceId = 0;
         GraphicsApi graphicsApi = GraphicsApi::Any;
         Msaa msaa = Msaa::None;
+        // CornFlowerBlue
+        std::uint32_t rgbaClearColor = 0x93CCEAFF;
 
         // In case there's anything specific not added here
         std::uint32_t bgfxCustomResetFlags = BGFX_RESET_NONE;
@@ -119,7 +121,7 @@ namespace psygine::core
         void render(double interpolation);
 
         [[nodiscard]] std::uint32_t bgfxResetFlags() const;
-        void populatePlatformData(bgfx::PlatformData& pd);
+        bool populatePlatformData(bgfx::PlatformData& pd);
 
         bool initialized_ = false;
         bool running_ = false;
@@ -127,6 +129,7 @@ namespace psygine::core
         bool initializedGamepad_ = false;
 
         SdlWindowPtr window_{nullptr, &SDL_DestroyWindow};
+        SdlMetalViewPtr metalView_{nullptr, &SDL_Metal_DestroyView};
         RuntimeConfig config_;
     };
 }
