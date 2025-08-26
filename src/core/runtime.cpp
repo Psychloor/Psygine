@@ -63,21 +63,22 @@ namespace psygine::core
         {
             sdlWindowFlags |= SDL_WINDOW_BORDERLESS;
         }
+        if (config_.transparentWindow)
+        {
+            sdlWindowFlags |= SDL_WINDOW_TRANSPARENT;
+        }
 
 #if defined(SDL_PLATFORM_MACOS) || defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
         sdlWindowFlags |= SDL_WINDOW_METAL;
 #endif
 
-        // Scoped so you can't use raw window ptr
+        window_ = SdlWindowPtr(SDL_CreateWindow(config_.title.c_str(), config_.width, config_.height, sdlWindowFlags),
+                               &SDL_DestroyWindow);
+        if (!window_)
         {
-            SDL_Window* window = SDL_CreateWindow(config_.title.c_str(), config_.width, config_.height, sdlWindowFlags);
-            if (window == nullptr)
-            {
-                std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << '\n' << std::flush;
-                SDL_Quit();
-                return false;
-            }
-            window_ = SdlWindowPtr(window, &SDL_DestroyWindow);
+            std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << '\n' << std::flush;
+            SDL_Quit();
+            return false;
         }
 
         bgfx::PlatformData pd{};
@@ -191,6 +192,31 @@ namespace psygine::core
     void Runtime::setIsRunning(const bool running)
     {
         running_ = running;
+    }
+
+    bool Runtime::isRunning() const
+    {
+        return running_;
+    }
+
+    bool Runtime::isInitialized() const
+    {
+        return initialized_;
+    }
+
+    bool Runtime::isInitializedGamepad() const
+    {
+        return initializedGamepad_;
+    }
+
+    const RuntimeConfig& Runtime::getConfig() const
+    {
+        return config_;
+    }
+
+    SDL_Window* Runtime::getWindow() const
+    {
+        return window_.get();
     }
 
     Runtime::Runtime(Runtime&& other) noexcept :
@@ -321,11 +347,10 @@ namespace psygine::core
         metalView_ = SdlMetalViewPtr(SDL_Metal_CreateView(window_.get()), &SDL_Metal_DestroyView);
         if (!metalView_)
         {
-            std::cerr << "SDL_Metal_CreateView failed" << SDL_GetError() << '\n' << std::flush;
+            std::cerr << "SDL_Metal_CreateView failed: " << SDL_GetError() << '\n' << std::flush;
             return false;
         }
         pd.nwh = SDL_Metal_GetLayer(metalView_.get());
-
 #endif
 
         // iOS/tvOS (Metal)
@@ -333,12 +358,11 @@ namespace psygine::core
         metalView_ = SdlMetalViewPtr(SDL_Metal_CreateView(window_.get()), &SDL_Metal_DestroyView);
         if (!metalView_)
         {
-            std::cerr << "SDL_Metal_CreateView failed" << SDL_GetError() << '\n' << std::flush;
+            std::cerr << "SDL_Metal_CreateView failed: " << SDL_GetError() << '\n' << std::flush;
             return false;
         }
         pd.nwh = SDL_Metal_GetLayer(metalView_.get());
 #endif
-
 
 #ifdef SDL_PLATFORM_EMSCRIPTEN
         // For web, bgfx expects a canvas selector string or nullptr for default canvas.

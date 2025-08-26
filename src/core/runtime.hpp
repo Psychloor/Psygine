@@ -49,14 +49,12 @@ namespace psygine::core
         bool vsync = true;
         bool resizable = false;
         bool borderless = false;
-        bool highDpi = false;
+        bool highDpi = true;
         bool hdr10 = false;
+        bool transparentWindow = false;
 
         bool debug = false;
-        bool profiling = false;
-        bool showCursor = true;
 
-        std::size_t refreshRate = 60;
         std::chrono::duration<double> fixedTimestep = std::chrono::duration<double>(1 / 60.0);
         std::chrono::duration<double> maxTimestep = std::chrono::duration<double>(1);
         std::size_t maxUpdatesPerTick = 10;
@@ -65,7 +63,8 @@ namespace psygine::core
         std::uint16_t gpuDeviceId = 0;
         GraphicsApi graphicsApi = GraphicsApi::Any;
         Msaa msaa = Msaa::None;
-        // CornFlowerBlue
+
+        // CornFlowerBlue - Update it if using a transparent window
         std::uint32_t rgbaClearColor = 0x93CCEAFF;
 
         // In case there's anything specific not added here
@@ -96,6 +95,11 @@ namespace psygine::core
         void run();
 
         void setIsRunning(bool running);
+        [[nodiscard]] bool isRunning() const;
+        [[nodiscard]] bool isInitialized() const;
+        [[nodiscard]] bool isInitializedGamepad() const;
+        [[nodiscard]] const RuntimeConfig& getConfig() const;
+        [[nodiscard]] SDL_Window* getWindow() const;
 
         // Copy and Move Operations
         Runtime(const Runtime& other) = delete;
