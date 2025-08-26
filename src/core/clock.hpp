@@ -5,7 +5,7 @@
 #ifndef PSYGINE_CLOCK_HPP
 #define PSYGINE_CLOCK_HPP
 
-#include "core/time.hpp"
+#include "time.hpp"
 
 namespace psygine::core::utils::time
 {
