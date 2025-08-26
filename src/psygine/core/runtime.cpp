@@ -1,13 +1,13 @@
 ﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
-#include "runtime.hpp"
+#include "psygine/core/runtime.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 
-#include "time.hpp"
+#include "psygine/core/time.hpp"
 
 #include "SDL3/SDL_metal.h"
 

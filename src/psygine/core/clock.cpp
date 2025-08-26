@@ -1,17 +1,19 @@
 ﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
-#include "clock.hpp"
+#include "psygine/core/clock.hpp"
 
 namespace psygine::core::utils::time
 {
 
-    Clock::Clock() : start_{Now()}, end_(start_)
+    Clock::Clock() :
+        start_{Now()}, end_(start_)
     {}
 
     void Clock::start()
     {
-        if (running()) {
+        if (running())
+        {
             return;
         }
 
@@ -21,7 +23,8 @@ namespace psygine::core::utils::time
 
     void Clock::stop()
     {
-        if (!running()) {
+        if (!running())
+        {
             return;
         }
 
@@ -62,7 +65,7 @@ namespace psygine::core::utils::time
         return start_ != end_;
     }
 
-    Clock::Clock(Clock&& other) noexcept:
+    Clock::Clock(Clock&& other) noexcept :
         start_(other.start_),
         end_(other.end_)
     {}

@@ -14,14 +14,15 @@ namespace psygine::core
     using SdlWindowPtr = std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)>;
     using SdlMetalViewPtr = std::unique_ptr<SDL_MetalView, decltype(&SDL_Metal_DestroyView)>;
 
-    namespace sdl_raii {
-        template<typename... Args>
+    namespace sdl_raii
+    {
+        template <typename... Args>
         [[nodiscard]] SdlWindowPtr CreateWindow(Args&&... args)
         {
             return SdlWindowPtr(SDL_CreateWindow(std::forward<Args>(args)...), &SDL_DestroyWindow);
         }
 
-        template<typename... Args>
+        template <typename... Args>
         [[nodiscard]] SdlMetalViewPtr CreateMetalView(Args&&... args)
         {
             return SdlMetalViewPtr(SDL_Metal_CreateView(std::forward<Args>(args)...), &SDL_Metal_DestroyView);

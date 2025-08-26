@@ -1,11 +1,11 @@
 ﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
-#include "core/time.hpp"
+#include "psygine/core/time.hpp"
 
 namespace psygine::core::utils::time
 {
-    
+
     types::TimePoint Now()
     {
         return types::Clock::now();
@@ -25,10 +25,12 @@ namespace psygine::core::utils::time
     {
         return std::chrono::duration<double, std::milli>(end - start).count();
     }
+
     double ElapsedMicroseconds(const types::TimePoint start, const types::TimePoint end)
     {
         return std::chrono::duration<double, std::micro>(end - start).count();
     }
+
     double ElapsedNanoseconds(const types::TimePoint start, const types::TimePoint end)
     {
         return std::chrono::duration<double, std::nano>(end - start).count();
@@ -43,14 +45,17 @@ namespace psygine::core::utils::time
     {
         return ElapsedSeconds(start, Now());
     }
+
     double ElapsedSinceMilliseconds(const types::TimePoint start)
     {
         return ElapsedMilliseconds(start, Now());
     }
+
     double ElapsedSinceMicroseconds(const types::TimePoint start)
     {
         return ElapsedMicroseconds(start, Now());
     }
+
     double ElapsedSinceNanoseconds(const types::TimePoint start)
     {
         return ElapsedNanoseconds(start, Now());

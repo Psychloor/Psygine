@@ -7,9 +7,9 @@
 #include <chrono>
 #include <string>
 
-#include "sdl_raii.hpp"
 #include "SDL3/SDL.h"
 #include "bgfx/bgfx.h"
+#include "psygine/core/sdl_raii.hpp"
 
 namespace psygine::core
 {
@@ -51,6 +51,7 @@ namespace psygine::core
         Software   = bgfx::RendererType::Count,
         Any        = bgfx::RendererType::Count
     };
+
     // ReSharper restore CppInconsistentNaming
 
     /**
