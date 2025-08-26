@@ -62,6 +62,14 @@ if (MSVC)
     target_compile_options(psygine PUBLIC /utf-8)
 endif ()
 
+# NOMINMAX and WIN32 lean and mean for windows
+if (MSVC)
+    target_compile_definitions(psyengine PUBLIC
+            NOMINMAX
+            WIN32_LEAN_AND_MEAN
+    )
+endif ()
+
 # Warnings (per-compiler)
 if (MSVC)
     target_compile_options(psygine PRIVATE /W3 /permissive- /Zc:__cplusplus)
