@@ -211,7 +211,8 @@ namespace psygine::core
         const double fixedTimestep = config_.fixedTimestep.count();
         const double maxTimestep = config_.maxTimestep.count();
 
-        const double delayTimeStep = 1.0 / 480.0;
+        // for non-vsync
+        constexpr double delayTimeStep = 1.0 / 240.0;
 
         while (running_)
         {
@@ -242,7 +243,7 @@ namespace psygine::core
             const double interpolation = accumulator > 0.0 ? (std::min)(accumulator / fixedTimestep, 0.999999) : 0.0;
             render(interpolation);
 
-            if (deltaTime < delayTimeStep)
+            if (!config_.vsync && deltaTime < delayTimeStep)
             {
                 SDL_DelayNS(1);
             }
