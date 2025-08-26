@@ -24,9 +24,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # ---------------- SOURCE COLLECTION ----------------
 set(PSYGINE_PROJECT_SOURCES
         src/psygine/core/runtime.cpp
-
         src/psygine/core/time.cpp
         src/psygine/core/clock.cpp
+        src/psygine/core/state_manager.cpp
 )
 
 # Automatically collect public headers under src/psygine/**
