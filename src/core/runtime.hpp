@@ -137,7 +137,7 @@ namespace psygine::core
         std::uint32_t bgfxCustomResetFlags = BGFX_RESET_NONE;
     };
 
-    class Runtime
+    class Runtime // NOLINT(*-virtual-class-destructor)
     {
         /**
          * @brief Constructor for the Runtime class.
@@ -169,7 +169,7 @@ namespace psygine::core
          *
          * @note Has to call super::destructor after you destroy yours, not before.
          */
-        ~Runtime();
+        virtual ~Runtime();
 
     public:
         /**

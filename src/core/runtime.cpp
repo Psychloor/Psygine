@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <iostream>
 
 #include "time.hpp"
@@ -14,6 +15,21 @@
 
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
+
+namespace
+{
+    const char* RendererName(bgfx::RendererType::Enum t) {
+        switch (t) {
+            case bgfx::RendererType::Direct3D11: return "D3D11";
+            case bgfx::RendererType::Direct3D12: return "D3D12";
+            case bgfx::RendererType::Vulkan:     return "Vulkan";
+            case bgfx::RendererType::Metal:      return "Metal";
+            case bgfx::RendererType::OpenGL:     return "OpenGL";
+            case bgfx::RendererType::OpenGLES:   return "OpenGLES";
+            default: return "Unknown/Auto";
+        }
+    }
+}
 
 namespace psygine::core
 {
@@ -26,16 +42,13 @@ namespace psygine::core
     Runtime::~Runtime()
     {
         // Reverse order of initialization
-        // only shut down bgfx if we actually initialized it
-        if (bgfx::getInternalData() != nullptr)
-        {
+        if (initialized_) {
             bgfx::shutdown();
+            initialized_ = false;
         }
         window_.reset();
 
-        // Only quit if any SDL subsystems are up
-        if (SDL_WasInit(0) != 0)
-        {
+        if (SDL_WasInit(0) != 0) {
             shutdownGamepad();
             SDL_Quit();
         }
@@ -133,7 +146,7 @@ namespace psygine::core
         initialized_ = bgfx::init(init);
         if (!initialized_)
         {
-            std::cerr << "bgfx::init failed: " << getRendererName(bgfx::getRendererType()) << '\n' << std::flush;
+            std::cerr << "bgfx::init failed: " << RendererName(bgfx::getRendererType()) << '\n' << std::flush;
             window_.reset();
             SDL_Quit();
             return false;
@@ -302,22 +315,40 @@ namespace psygine::core
             return;
         }
 
-        setViewMode(0, bgfx::ViewMode::Sequential);
+        // ReSharper disable once CppRedundantQualifierADL
+        bgfx::setViewMode(0, bgfx::ViewMode::Sequential);
     }
 
-    Runtime::Runtime(Runtime&& other) noexcept :
-        window_{std::move(other.window_)},
-        config_{std::move(other.config_)}
-    {}
-
-    Runtime& Runtime::operator=(Runtime&& other) noexcept
+    Runtime::Runtime(Runtime&& other) noexcept
+        : initialized_{other.initialized_},
+          running_{other.running_},
+          debug_{other.debug_},
+          wireframe_{other.wireframe_},
+          window_{std::move(other.window_)},
+          metalView_{std::move(other.metalView_)},
+          config_{std::move(other.config_)}
     {
-        if (this == &other)
-        {
-            return *this;
+        other.initialized_ = false;
+        other.running_ = false;
+        other.debug_ = false;
+        other.wireframe_ = false;
+    }
+
+    Runtime& Runtime::operator=(Runtime&& other) noexcept {
+        if (this != &other) {
+            // optionally: if (initialized_) { /* tidy current */ }
+            window_     = std::move(other.window_);
+            metalView_  = std::move(other.metalView_);
+            config_     = std::move(other.config_);
+            initialized_= other.initialized_;
+            running_    = other.running_;
+            debug_      = other.debug_;
+            wireframe_  = other.wireframe_;
+            other.initialized_ = false;
+            other.running_ = false;
+            other.debug_ = false;
+            other.wireframe_ = false;
         }
-        window_ = std::move(other.window_);
-        config_ = std::move(other.config_);
         return *this;
     }
 
