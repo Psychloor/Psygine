@@ -222,7 +222,7 @@ check_required_components(@PROJECT_NAME@)
 
     # Common third-party/notice filenames at repo root
     foreach (f IN ITEMS
-            THIRD_PARTY_NOTICES.md THIRD_PARTY_NOTICES
+            THIRD_PARTY_LICENSES.md THIRD_PARTY_NOTICES
             THIRD_PARTY.md THIRD_PARTY
             NOTICE NOTICES)
         if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
