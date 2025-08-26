@@ -1792,4 +1792,5 @@ abstract.record*
 secring.*
 
 
-!/src/psygine/debug/
+!/src/psygine/
+cmake/psygineConfig.cmake.in
