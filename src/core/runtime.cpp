@@ -9,7 +9,6 @@
 #include "time.hpp"
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
-#include "bgfx/c99/bgfx.h"
 
 namespace psygine::core
 {
@@ -23,7 +22,7 @@ namespace psygine::core
 
         window_.reset();
 
-        if (initializedGamepad)
+        if (initializedGamepad_)
         {
             SDL_QuitSubSystem(SDL_INIT_GAMEPAD);
         }
@@ -76,60 +75,7 @@ namespace psygine::core
         }
 
         bgfx::PlatformData pd{};
-        pd.ndt = nullptr;
-        pd.nwh = nullptr;
-
-
-        // Windows
-#ifdef SDL_PLATFORM_WINDOWS
-        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-#endif
-
-        // X11
-#ifdef SDL_PLATFORM_LINUX
-        if (const char* drv = SDL_GetCurrentVideoDriver())
-        {
-            if (SDL_strcmp(drv, "x11") == 0)
-            {
-                pd.ndt = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                                SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr);
-                pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(winwindow_.get()dow),
-                                                SDL_PROP_WINDOW_X11_WINDOW_POINTER, nullptr);
-            }
-            else if (SDL_strcmp(drv, "wayland") == 0)
-            {
-                pd.ndt = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                                SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr);
-                pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                                SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
-            }
-        }
-#endif
-
-        // Android
-#ifdef SDL_PLATFORM_ANDROID
-        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                        SDL_PROP_WINDOW_ANDROID_NATIVE_WINDOW_POINTER, nullptr);
-#endif
-
-        // macOS (Metal)
-#ifdef SDL_PLATFORM_MACOS
-        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                        SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
-#endif
-
-        // iOS/tvOS (Metal)
-#if defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
-        // Assign CAMetalLayer* to nwh.
-#endif
-
-#ifdef SDL_PLATFORM_EMSCRIPTEN
-        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
-                                        SDL_PROP_WINDOW_WEB_GLCONTEXT_POINTER, nullptr);
-#endif
-
-
+        populatePlatformData(pd);
         // ReSharper disable once CppRedundantQualifierADL
         bgfx::setPlatformData(pd);
 
@@ -141,7 +87,7 @@ namespace psygine::core
 
         init.resolution.width = config_.width;
         init.resolution.height = config_.height;
-
+        init.deviceId = config_.gpuDeviceId;
         init.resolution.reset = bgfxResetFlags();
 
         initialized_ = bgfx::init(init);
@@ -158,13 +104,13 @@ namespace psygine::core
 
     bool Runtime::initializeGamepad()
     {
-        if (initializedGamepad)
+        if (initializedGamepad_)
         {
             return true;
         }
 
-        initializedGamepad = SDL_InitSubSystem(SDL_INIT_GAMEPAD);
-        return initializedGamepad;
+        initializedGamepad_ = SDL_InitSubSystem(SDL_INIT_GAMEPAD);
+        return initializedGamepad_;
     }
 
     void Runtime::run()
@@ -201,7 +147,7 @@ namespace psygine::core
         {
             handleEvents();
 
-            double deltaTime = utils::time::ElapsedSinceSeconds(now);
+            double deltaTime = std::min(utils::time::ElapsedSinceSeconds(now), maxTimestep);
             now = utils::time::Now();
 
             // Protect some against lag spikes and all
@@ -221,11 +167,16 @@ namespace psygine::core
                 accumulator = std::fmod(accumulator, fixedTimestep);
             }
 
-            update(std::min(deltaTime, config_.maxTimestep.count()));
+            update(deltaTime);
 
-            const auto interpolationFactor = static_cast<float>(accumulator / fixedTimestep);
+            const auto interpolationFactor = accumulator / fixedTimestep;
             render(interpolationFactor);
         }
+    }
+
+    void Runtime::setIsRunning(const bool running)
+    {
+        running_ = running;
     }
 
     Runtime::Runtime(Runtime&& other) noexcept :
@@ -244,6 +195,11 @@ namespace psygine::core
         return *this;
     }
 
+    bool Runtime::onQuitRequested()
+    {
+        return true;
+    }
+
     void Runtime::handleEvents()
     {
         SDL_Event event;
@@ -251,30 +207,43 @@ namespace psygine::core
         {
             switch (event.type)
             {
-                case SDL_EVENT_QUIT: running_ = false;
+                case SDL_EVENT_QUIT: if (onQuitRequested())
+                    {
+                        running_ = false;
+                    }
                     break;
 
-                case SDL_EVENT_WINDOW_RESIZED: const auto width = event.window.data1;
+                case SDL_EVENT_WINDOW_RESIZED:
+                {
+                    const auto width = event.window.data1;
                     const auto height = event.window.data2;
                     bgfx::reset(width, height, bgfxResetFlags());
-                    bgfx::setViewRect(0, 0, 0, width, height);
-                    break;
+                    bgfx::setViewRect(0, 0, 0, static_cast<uint16_t>(width), static_cast<uint16_t>(height));
+                    onEvent(event);
+                }
+                break;
 
-                default:
+                default: onEvent(event);
                     break;
             }
         }
     }
 
-    void Runtime::fixedUpdate(double deltaTime)
-    {}
+    void Runtime::fixedUpdate(const double deltaTime)
+    {
+        onFixedUpdate(deltaTime);
+    }
 
-    void Runtime::update(double deltaTime)
-    {}
+    void Runtime::update(const double deltaTime)
+    {
+        onUpdate(deltaTime);
+    }
 
-    void Runtime::render(double interpolation)
+    void Runtime::render(const double interpolation)
     {
         bgfx::touch(0);
+
+        onRender(interpolation);
 
         bgfx::frame();
     }
@@ -293,5 +262,60 @@ namespace psygine::core
         resetFlags |= static_cast<std::uint32_t>(config_.msaa);
 
         return resetFlags;
+    }
+
+    void Runtime::populatePlatformData(bgfx::PlatformData& pd)
+    {
+        pd.ndt = nullptr;
+        pd.nwh = nullptr;
+
+        // Windows
+#ifdef SDL_PLATFORM_WINDOWS
+        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+#endif
+
+        // X11
+#ifdef SDL_PLATFORM_LINUX
+        if (const char* drv = SDL_GetCurrentVideoDriver())
+        {
+            if (SDL_strcmp(drv, "x11") == 0)
+            {
+                pd.ndt = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                                SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr);
+                pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                                SDL_PROP_WINDOW_X11_WINDOW_POINTER, nullptr);
+            }
+            else if (SDL_strcmp(drv, "wayland") == 0)
+            {
+                pd.ndt = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                                SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr);
+                pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                                SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
+            }
+        }
+#endif
+
+        // Android
+#ifdef SDL_PLATFORM_ANDROID
+        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                        SDL_PROP_WINDOW_ANDROID_NATIVE_WINDOW_POINTER, nullptr);
+#endif
+
+        // macOS (Metal)
+#ifdef SDL_PLATFORM_MACOS
+        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                        SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+#endif
+
+        // iOS/tvOS (Metal)
+#if defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
+        // Assign CAMetalLayer* to nwh.
+#endif
+
+#ifdef SDL_PLATFORM_EMSCRIPTEN
+        pd.nwh = SDL_GetPointerProperty(SDL_GetWindowProperties(window_.get()),
+                                        SDL_PROP_WINDOW_WEB_GLCONTEXT_POINTER, nullptr);
+#endif
     }
 }
