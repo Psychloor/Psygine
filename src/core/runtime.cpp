@@ -323,41 +323,6 @@ namespace psygine::core
         bgfx::setViewMode(0, bgfx::ViewMode::Sequential);
     }
 
-    Runtime::Runtime(Runtime&& other) noexcept :
-        initialized_{other.initialized_},
-        running_{other.running_},
-        debug_{other.debug_},
-        wireframe_{other.wireframe_},
-        window_{std::move(other.window_)},
-        metalView_{std::move(other.metalView_)},
-        config_{std::move(other.config_)}
-    {
-        other.initialized_ = false;
-        other.running_ = false;
-        other.debug_ = false;
-        other.wireframe_ = false;
-    }
-
-    Runtime& Runtime::operator=(Runtime&& other) noexcept
-    {
-        if (this != &other)
-        {
-            // optionally: if (initialized_) { /* tidy current */ }
-            window_ = std::move(other.window_);
-            metalView_ = std::move(other.metalView_);
-            config_ = std::move(other.config_);
-            initialized_ = other.initialized_;
-            running_ = other.running_;
-            debug_ = other.debug_;
-            wireframe_ = other.wireframe_;
-            other.initialized_ = false;
-            other.running_ = false;
-            other.debug_ = false;
-            other.wireframe_ = false;
-        }
-        return *this;
-    }
-
     bool Runtime::onQuitRequested()
     {
         return true;

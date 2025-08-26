@@ -143,7 +143,7 @@ namespace psygine::core
         std::string customEmscriptenCanvas;
     };
 
-    class Runtime // NOLINT(*-virtual-class-destructor)
+    class Runtime : public std::enable_shared_from_this<Runtime> // NOLINT(*-virtual-class-destructor)
     {
         /**
          * @brief Constructor for the Runtime class.
@@ -166,14 +166,17 @@ namespace psygine::core
         /**
          * @brief Destructor for the Runtime class.
          *
-         * This destructor performs the cleanup and shutdown operations for the Runtime
-         * instance. It handles the following tasks:
-         * - Shuts down the bgfx subsystem.
-         * - Releases the window resources.
-         * - Deinitializes the gamepad subsystem if it was previously initialized.
-         * - Cleans up the SDL subsystems.
+         * Cleans up resources and performs necessary shutdown operations during the
+         * destruction of a Runtime instance. It ensures proper termination
+         * of systems initialized during the Runtime's lifetime.
          *
-         * @note Has to call super::destructor after you destroy yours, not before.
+         * - Shuts down the rendering backend if it was initialized.
+         * - Releases the allocated window resources.
+         * - Tears down SDL systems if they were previously initialized.
+         * - Handles gamepad subsystem shutdown, if applicable.
+         *
+         * This method ensures that all Runtime-associated resources are properly
+         * released, preventing memory leaks or undefined behavior upon program exit.
          */
         virtual ~Runtime();
 
@@ -352,9 +355,9 @@ namespace psygine::core
 
         // Copy and Move Operations
         Runtime(const Runtime& other) = delete;
-        Runtime(Runtime&& other) noexcept;
+        Runtime(Runtime&& other) noexcept = delete;
         Runtime& operator=(const Runtime& other) = delete;
-        Runtime& operator=(Runtime&& other) noexcept;
+        Runtime& operator=(Runtime&& other) noexcept = delete;
 
     protected:
         /**
