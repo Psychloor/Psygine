@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.26)
 
 project(psygine
         VERSION 0.1.0
@@ -57,18 +57,26 @@ target_sources(${PROJECT_NAME}
 # Modern way to enforce language standard
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
+if (MSVC)
+    if (NOT CMAKE_GENERATOR STREQUAL "Ninja")
+        add_definitions(/MP)    # parallelize each target, unless Ninja is the generator
+    endif ()
+endif ()
+
+
 # UTF 8 support
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PUBLIC /utf-8)
 endif ()
 
-# NOMINMAX and WIN32 lean and mean for windows
-if (MSVC)
+# NOMINMAX and WIN32_LEAN_AND_MEAN for Windows (all toolchains)
+if (WIN32)
     target_compile_definitions(${PROJECT_NAME} PUBLIC
             NOMINMAX
             WIN32_LEAN_AND_MEAN
     )
 endif ()
+
 
 # Warnings (per-compiler)
 if (MSVC)
@@ -131,15 +139,95 @@ if (NOT bgfx_FOUND)
 endif ()
 
 # SDL3
-find_package(SDL3 CONFIG REQUIRED)
+if (EMSCRIPTEN)
+    message(STATUS "Building for Emscripten: using SDL3 via Emscripten ports (-sUSE_SDL=3)")
+elseif (ANDROID)
+    message(STATUS "Building for Emscripten: using SDL3 via Emscripten ports (-sUSE_SDL=3)")
+else ()
+    find_package(SDL3 CONFIG REQUIRED)
+endif ()
 
+# ---------------- LINKING ----------------
+# Be resilient to either plain or namespaced targets for bgfx stack.
+set(_bgfx_target "")
+set(_bx_target "")
+set(_bimg_target "")
+if (TARGET bgfx::bgfx)
+    set(_bgfx_target bgfx::bgfx)
+elseif (TARGET bgfx)
+    set(_bgfx_target bgfx)
+endif ()
+if (TARGET bx::bx)
+    set(_bx_target bx::bx)
+elseif (TARGET bx)
+    set(_bx_target bx)
+endif ()
+if (TARGET bimg::bimg)
+    set(_bimg_target bimg::bimg)
+elseif (TARGET bimg)
+    set(_bimg_target bimg)
+endif ()
+
+# Common links
 target_link_libraries(${PROJECT_NAME}
         PUBLIC
-        SDL3::SDL3
-        bgfx
-        bx,
-        bimg
+        ${_bgfx_target}
+        ${_bx_target}
+        ${_bimg_target}
 )
+
+# SDL3 linking: native vs Emscripten/Android
+if (EMSCRIPTEN)
+    target_link_options(${PROJECT_NAME} PUBLIC
+            "SHELL:-sUSE_SDL=3"
+            "SHELL:-sMIN_WEBGL_VERSION=2"
+            "SHELL:-sMAX_WEBGL_VERSION=2"
+            "SHELL:-sFULL_ES3=1"
+            "SHELL:-sALLOW_MEMORY_GROWTH=1"
+    )
+    # Optional Web debug diagnostics
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_link_options(${PROJECT_NAME} PUBLIC
+                "SHELL:-sASSERTIONS=1"
+                "SHELL:-sSAFE_HEAP=1"
+                "SHELL:-sSTACK_OVERFLOW_CHECK=2"
+        )
+    endif ()
+elseif (ANDROID)
+    # Rely on app/toolchain-provided SDL3 on Android (don’t force CMake package).
+    # If your consumers use a CMake SDL3 package, they can link it on their side.
+else ()
+    target_link_libraries(${PROJECT_NAME} PUBLIC SDL3::SDL3)
+endif ()
+
+if (EMSCRIPTEN)
+    # Extra diagnostics in Debug (optional)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_link_options(${PROJECT_NAME} PUBLIC
+                "SHELL:-sASSERTIONS=1"
+                "SHELL:-sSAFE_HEAP=1"
+                "SHELL:-sSTACK_OVERFLOW_CHECK=2"
+        )
+    endif ()
+endif ()
+
+
+# macOS frameworks when using Metal (avoid on Emscripten)
+if (APPLE AND NOT EMSCRIPTEN)
+    find_library(COCOA_FRAMEWORK Cocoa)
+    find_library(QUARTZCORE_FRAMEWORK QuartzCore)
+    find_library(METAL_FRAMEWORK Metal)
+    if (COCOA_FRAMEWORK)
+        target_link_libraries(${PROJECT_NAME} PUBLIC "${COCOA_FRAMEWORK}")
+    endif ()
+    if (QUARTZCORE_FRAMEWORK)
+        target_link_libraries(${PROJECT_NAME} PUBLIC "${QUARTZCORE_FRAMEWORK}")
+    endif ()
+    if (METAL_FRAMEWORK)
+        target_link_libraries(${PROJECT_NAME} PUBLIC "${METAL_FRAMEWORK}")
+    endif ()
+endif ()
+
 
 # Create namespaced ALIAS for consumers and consistency with exports
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -170,6 +258,7 @@ if (PROJECT_IS_TOP_LEVEL)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
     )
 
+
     include(CMakePackageConfigHelpers)
 
     write_basic_package_version_file(
@@ -179,19 +268,33 @@ if (PROJECT_IS_TOP_LEVEL)
     )
 
     if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in")
-        file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
-                "@PACKAGE_INIT@
+        if (EMSCRIPTEN OR ANDROID)
+            file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+                    "@PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
 
-# Uncomment and modify if package has dependencies
-# find_dependency(fmt CONFIG REQUIRED)
+# bgfx may be bundled or provided; try quietly
+find_package(bgfx CONFIG QUIET)
+
+# SDL3 is provided via toolchain/ports on Web/Android; don't require a CMake package here.
+
+include(\"\${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake\")
+check_required_components(@PROJECT_NAME@)
+")
+        else ()
+            file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+                    "@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_package(bgfx CONFIG QUIET)
 find_dependency(SDL3 CONFIG REQUIRED)
 
 include(\"\${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake\")
-
 check_required_components(@PROJECT_NAME@)
 ")
+        endif ()
     endif ()
 
     configure_package_config_file(
@@ -220,7 +323,6 @@ check_required_components(@PROJECT_NAME@)
                 FILES_MATCHING
                 PATTERN "*"
         )
+
     endif ()
-
-
 endif ()
