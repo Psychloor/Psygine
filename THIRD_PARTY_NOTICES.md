@@ -17,7 +17,8 @@ The license texts are provided in the [`LICENSES/`](LICENSES/) directory.
 - **Project:** [bgfx](https://github.com/bkaradzic/bgfx)
 - **License:** BSD 2-Clause
     - SPDX Identifier: `BSD-2-Clause`
-- **License Text:** [`LICENSES/bgfx-license.txt`](LICENSES/bgfx-license.txt)
+- **License Text:** [`LICENSES/BSD-2-Clause.txt`](LICENSES/BSD-2-Clause.txt)
+- **Source:** [bgfx upstream repository](https://github.com/bkaradzic/bgfx)
 - **Notice:** The authors of bgfx do not endorse or promote this project.
 
 ---
@@ -26,7 +27,8 @@ The license texts are provided in the [`LICENSES/`](LICENSES/) directory.
 - **Project:** [SDL3](https://github.com/libsdl-org/SDL)
 - **License:** Zlib
     - SPDX Identifier: `Zlib`
-- **License Text:** [`LICENSES/sdl3-license.txt`](LICENSES/sdl3-license.txt)
+- **License Text:** [`LICENSES/Zlib.txt`](LICENSES/Zlib.txt)
+- **Source:** [SDL3 upstream repository](https://github.com/libsdl-org/SDL)
 - **Notice:** The authors of SDL3 do not endorse or promote this project.
 
 ---
