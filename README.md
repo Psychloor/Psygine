@@ -157,4 +157,4 @@ Issues and PRs are welcome. Please keep changes focused, with clear motivation a
 # License
 
 This project is licensed under the [MIT License](LICENSE).  
-Third-party components are licensed separately (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
+Third-party components are licensed separately (see [THIRD_PARTY_NOTICES.md](THIRD-PARTY-NOTICES.md)).
