@@ -232,7 +232,7 @@ namespace psygine::core
             const double deltaTime = std::min(utils::time::ElapsedSinceSeconds(now), maxTimestep);
             now = utils::time::Now();
             lastDeltaTime_ = deltaTime;
-            accumulator += maxTimestep;
+            accumulator += deltaTime;
 
             updatesThisFrame = 0;
             while (accumulator >= fixedTimestep && updatesThisFrame < config_.maxUpdatesPerTick)
