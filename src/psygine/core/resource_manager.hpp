@@ -1,0 +1,109 @@
+﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+//  SPDX-License-Identifier: MIT
+
+//
+// Created by blomq on 2025-08-28.
+//
+
+#ifndef PSYGINE_RESOURCE_MANAGER_HPP
+#define PSYGINE_RESOURCE_MANAGER_HPP
+#include <memory>
+#include <ranges>
+#include <string>
+#include <unordered_map>
+
+namespace psygine::core
+{
+    template <typename T>
+    /**
+     * @brief Abstract class for managing shared resources with caching and loading capabilities.
+     *
+     * This class serves as a resource manager template, allowing storage, retrieval,
+     * and cleanup of shared resources. It uses an internal cache to store resources
+     * by their unique paths, ensuring efficient reuse and validity checks.
+     *
+     * @tparam T The type of resource to be managed.
+     */
+    class ResourceManager
+    {
+    public:
+        virtual ~ResourceManager() = default;
+
+        /**
+         * @brief Retrieves a shared resource by its path, loading it if not already cached.
+         *
+         * This method attempts to retrieve a resource from the internal cache. If the resource
+         * is not present or no longer valid, it will be loaded and added to the cache before
+         * being returned.
+         *
+         * @param path The file path or identifier of the resource to retrieve.
+         * @return A `std::shared_ptr<T>` pointing to the retrieved or loaded resource.
+         */
+        std::shared_ptr<T> get(const std::string& path)
+        {
+            const auto it = cache_.find(path);
+            if (it != cache_.end())
+            {
+                if (auto resource = it->second.lock())
+                {
+                    return resource;
+                }
+            }
+
+            auto resource = load(path);
+            cache_[path] = resource;
+            return resource;
+        }
+
+        /**
+         * @brief Cleans up the internal resource cache by removing expired entries.
+         *
+         * This method iterates through the internal cache and removes any cached
+         * resource whose `std::weak_ptr` has expired. It helps to reclaim memory
+         * and maintain the integrity of the resource cache by purging stale or
+         * invalid references.
+         */
+        void cleanup()
+        {
+            std::erase_if(cache_, [](auto& pair)
+            {
+                return pair.second.expired();
+            });
+        }
+
+        ResourceManager(const ResourceManager& other) = delete;
+
+        ResourceManager(ResourceManager&& other) noexcept :
+            cache_(std::move(other.cache_))
+        {}
+
+        ResourceManager& operator=(const ResourceManager& other) = delete;
+
+        ResourceManager& operator=(ResourceManager&& other) noexcept
+        {
+            if (this == &other)
+            {
+                return *this;
+            }
+            cache_ = std::move(other.cache_);
+            return *this;
+        }
+
+    protected:
+        /**
+         * @brief Loads a resource from the given path.
+         *
+         * This pure virtual method must be implemented by derived classes to define
+         * the specific mechanism for loading a resource. It is invoked when a resource
+         * is not found in the cache and needs to be loaded.
+         *
+         * @param path The file path or identifier of the resource to load.
+         * @return A `std::shared_ptr<T>` pointing to the loaded resource.
+         */
+        virtual std::shared_ptr<T> load(std::string& path) = 0;
+
+        std::pmr::unordered_map<std::string, std::weak_ptr<T>> cache_;
+    };
+}
+
+#endif //PSYGINE_RESOURCE_MANAGER_HPP

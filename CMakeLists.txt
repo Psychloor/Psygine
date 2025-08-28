@@ -29,12 +29,21 @@ set(PSYGINE_PROJECT_SOURCES
         src/psygine/core/state_manager.cpp
 )
 
-# Automatically collect public headers under src/psygine/**
-file(GLOB_RECURSE PSYGINE_PROJECT_HEADERS CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/psygine/**/*.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/psygine/**/*.h"
-
+set(PSYGINE_PROJECT_HEADERS
+        src/psygine/core/base_state.hpp
+        src/psygine/core/clock.hpp
+        src/psygine/core/random.hpp
+        src/psygine/core/resource_manager.hpp
+        src/psygine/core/runtime.hpp
+        src/psygine/core/sdl_raii.hpp
+        src/psygine/core/time.cpp
 )
+
+# Automatically collect public headers under src/psygine/**
+#file(GLOB_RECURSE PSYGINE_PROJECT_HEADERS CONFIGURE_DEPENDS
+#        "${CMAKE_CURRENT_SOURCE_DIR}/src/psygine/**/*.hpp"
+#        "${CMAKE_CURRENT_SOURCE_DIR}/src/psygine/**/*.h"
+#)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src"
         FILES ${PSYGINE_PROJECT_SOURCES} ${PSYGINE_PROJECT_HEADERS})
