@@ -102,12 +102,15 @@ namespace psygine::core
             sdlWindowFlags |= SDL_WINDOW_OPENGL;
         }
 
-#if defined(SDL_PLATFORM_MACOS) || defined(SDL_PLATFORM_IOS) || defined(SDL_PLATFORM_TVOS)
         if (config_.graphicsApi == GraphicsApi::Metal || config_.graphicsApi == GraphicsApi::Any)
         {
+#if !defined(SDL_PLATFORM_MACOS) && !defined(SDL_PLATFORM_IOS) && !defined(SDL_PLATFORM_TVOS)
+            std::cerr << "Metal API requested but not available on this platform!\n";
+            return false;
+#endif
+            // ReSharper disable once CppDFAUnreachableCode
             sdlWindowFlags |= SDL_WINDOW_METAL;
         }
-#endif
 
         window_ = sdl_raii::CreateWindow(config_.title.c_str(), config_.width, config_.height, sdlWindowFlags);
         if (!window_)
@@ -154,6 +157,10 @@ namespace psygine::core
             SDL_Quit();
             return false;
         }
+
+        const bgfx::Caps* caps = bgfx::getCaps();
+        std::cout << "Renderer: " << RendererName(caps->rendererType) << "\n";
+        std::cout << "Max texture size: " << caps->limits.maxTextureSize << "\n";
 
         debug_ = config_.debug;
         wireframe_ = false;
@@ -222,10 +229,10 @@ namespace psygine::core
             handleEvents();
 
             // Protect some against lag spikes and all, kept within parentheses
-            const double deltaTime = utils::time::ElapsedSinceSeconds(now);
+            const double deltaTime = std::min(utils::time::ElapsedSinceSeconds(now), maxTimestep);
             now = utils::time::Now();
-
-            accumulator += std::min(deltaTime, maxTimestep);
+            lastDeltaTime_ = deltaTime;
+            accumulator += maxTimestep;
 
             updatesThisFrame = 0;
             while (accumulator >= fixedTimestep && updatesThisFrame < config_.maxUpdatesPerTick)
@@ -321,6 +328,11 @@ namespace psygine::core
 
         // ReSharper disable once CppRedundantQualifierADL
         bgfx::setViewMode(0, bgfx::ViewMode::Sequential);
+    }
+
+    double Runtime::getCurrentFps() const
+    {
+        return 1.0 / lastDeltaTime_;
     }
 
     bool Runtime::onQuitRequested()

@@ -353,6 +353,8 @@ namespace psygine::core
          */
         void set2DViewModeOrdering() const;
 
+        [[nodiscard]] double getCurrentFps() const;
+
         // Copy and Move Operations
         Runtime(const Runtime& other) = delete;
         Runtime(Runtime&& other) noexcept = delete;
@@ -432,6 +434,7 @@ namespace psygine::core
 
         bool initialized_ = false;
         bool running_ = false;
+        double lastDeltaTime_ = 0.0;
 
         bool debug_ = false;
         bool wireframe_ = false;

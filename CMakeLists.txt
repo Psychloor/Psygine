@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.31)
 
 project(psygine
         VERSION 0.1.0
@@ -17,6 +17,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(ENABLE_WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
 option(ENABLE_UNITY "Enable unity/jumbo builds for faster compilation" OFF)
 option(ENABLE_SANITIZERS "Enable Address/Undefined sanitizers for Clang/GCC (non-MSVC)" OFF)
+option(PSYGINE_EXAMPLES "Build examples for psygine" ON)
 
 # Organize targets in IDEs (CLion, VS, Xcode, etc.)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -241,6 +242,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
         EXPORT_NAME ${PROJECT_NAME}
         FOLDER "Libraries" # shows up as 'Libraries/${PROJECT_NAME}' in IDEs
 )
+
+# ---------------- EXAMPLES ----------------
+if (PSYGINE_EXAMPLES)
+    add_subdirectory(examples)
+endif ()
 
 # ---------------- INSTALL / EXPORT ----------------
 include(GNUInstallDirs)

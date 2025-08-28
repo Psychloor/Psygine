@@ -1,0 +1,4 @@
+﻿audio could either use OpenAL or SoLoud.
+both can do 3d positioning and so but OpenAL has way more but more complex.
+
+images/textures. stb_images is apparently really great

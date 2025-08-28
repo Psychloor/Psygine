@@ -106,9 +106,10 @@ int main() {
 
 The runtime implements a “Fix Your Timestep” loop:
 - Fixed update runs at a constant step (e.g., 1/60s) to keep simulation deterministic.
-- Variable update gets the current frame’s dt for smooth, frame-rate-independent logic. BEWARE: variable updates delta-time aren't clamped.
+- Variable update gets the current frame’s dt for smooth, frame-rate-independent logic.
 - Interpolation factor is provided to render between fixed steps.
 - Protections against the “spiral of death” cap catch-up work and trim excess lag.
+- All delta times are in seconds and clamped to the configured max.
 
 This provides smooth rendering even if the simulation runs at a steady fixed rate.
 
