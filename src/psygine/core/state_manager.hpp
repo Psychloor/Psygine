@@ -1,10 +1,6 @@
 ﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 //  SPDX-License-Identifier: MIT
 
-//
-// Created by blomq on 2025-08-26.
-//
-
 #ifndef PSYGINE_STATE_MANAGER_HPP
 #define PSYGINE_STATE_MANAGER_HPP
 

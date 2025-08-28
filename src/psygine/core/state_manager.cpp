@@ -1,10 +1,6 @@
 ﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 //  SPDX-License-Identifier: MIT
 
-//
-// Created by blomq on 2025-08-26.
-//
-
 #include "psygine/core/state_manager.hpp"
 
 #include <cassert>

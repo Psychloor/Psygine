@@ -1,20 +1,16 @@
 ﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 //  SPDX-License-Identifier: MIT
 
-//
-// Created by blomq on 2025-08-28.
-//
-
 #ifndef PSYGINE_RESOURCE_MANAGER_HPP
 #define PSYGINE_RESOURCE_MANAGER_HPP
+
 #include <memory>
-#include <ranges>
 #include <string>
 #include <unordered_map>
 
 namespace psygine::core
 {
-    template <typename T>
+
     /**
      * @brief Abstract class for managing shared resources with caching and loading capabilities.
      *
@@ -24,6 +20,7 @@ namespace psygine::core
      *
      * @tparam T The type of resource to be managed.
      */
+    template <typename T>
     class ResourceManager
     {
     public:
@@ -72,22 +69,9 @@ namespace psygine::core
         }
 
         ResourceManager(const ResourceManager& other) = delete;
-
-        ResourceManager(ResourceManager&& other) noexcept :
-            cache_(std::move(other.cache_))
-        {}
-
+        ResourceManager(ResourceManager&& other) noexcept = delete;
         ResourceManager& operator=(const ResourceManager& other) = delete;
-
-        ResourceManager& operator=(ResourceManager&& other) noexcept
-        {
-            if (this == &other)
-            {
-                return *this;
-            }
-            cache_ = std::move(other.cache_);
-            return *this;
-        }
+        ResourceManager& operator=(ResourceManager&& other) noexcept = delete;
 
     protected:
         /**
@@ -100,9 +84,9 @@ namespace psygine::core
          * @param path The file path or identifier of the resource to load.
          * @return A `std::shared_ptr<T>` pointing to the loaded resource.
          */
-        virtual std::shared_ptr<T> load(std::string& path) = 0;
+        virtual std::shared_ptr<T> load(const std::string& path) = 0;
 
-        std::pmr::unordered_map<std::string, std::weak_ptr<T>> cache_;
+        std::unordered_map<std::string, std::weak_ptr<T>> cache_;
     };
 }
 
