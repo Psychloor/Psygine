@@ -36,20 +36,27 @@ namespace psygine::core
          * @param path The file path or identifier of the resource to retrieve.
          * @return A `std::shared_ptr<T>` pointing to the retrieved or loaded resource.
          */
-        std::shared_ptr<T> get(const std::string& path)
+        [[nodiscard]] std::shared_ptr<T> get(const std::string& path)
         {
-            const auto it = cache_.find(path);
-            if (it != cache_.end())
+            if (auto it = cache_.find(path);
+                it != cache_.end())
             {
                 if (auto resource = it->second.lock())
                 {
                     return resource;
                 }
+
+                // Expired entry: remove it to keep the cache tidy.
+                cache_.erase(it);
             }
 
-            auto resource = load(path);
-            cache_[path] = resource;
-            return resource;
+            if (auto resource = load(path))
+            {
+                cache_.emplace(path, resource);
+                return resource;
+            }
+
+            return nullptr;
         }
 
         /**
@@ -60,7 +67,7 @@ namespace psygine::core
          * and maintain the integrity of the resource cache by purging stale or
          * invalid references.
          */
-        void cleanup()
+        void cleanup() noexcept
         {
             std::erase_if(cache_, [](auto& pair)
             {
@@ -84,7 +91,7 @@ namespace psygine::core
          * @param path The file path or identifier of the resource to load.
          * @return A `std::shared_ptr<T>` pointing to the loaded resource.
          */
-        virtual std::shared_ptr<T> load(const std::string& path) = 0;
+        [[nodiscard]] virtual std::shared_ptr<T> load(const std::string& path) = 0;
 
         std::unordered_map<std::string, std::weak_ptr<T>> cache_;
     };
