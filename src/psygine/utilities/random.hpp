@@ -1,6 +1,9 @@
 ﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 //  SPDX-License-Identifier: MIT
 
+//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+//  SPDX-License-Identifier: MIT
+
 #ifndef PSYGINE_RANDOM_HPP
 #define PSYGINE_RANDOM_HPP
 
@@ -11,7 +14,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace psygine::core::utils::random
+namespace psygine::utilities::random
 {
     namespace detail
     {
@@ -309,11 +312,6 @@ namespace psygine::core::utils::random
         return MakeCustomSeededRngHashed<Engine, std::uint64_t>(combined, PassThroughHash{combined});
     }
 
-
-    // Quick utility functions for the most common cases
-    using Mersenne32 = std::mt19937;
-    using Mersenne64 = std::mt19937_64;
-
     /**
      * @brief Creates and returns a seeded Mersenne Twister random number generator with a 32-bit state size.
      *
@@ -329,7 +327,7 @@ namespace psygine::core::utils::random
      */
     inline auto MakeMersenne32()
     {
-        return MakeSeededRng<Mersenne32>();
+        return MakeSeededRng<std::mt19937>();
     }
 
     /**
@@ -347,7 +345,7 @@ namespace psygine::core::utils::random
      */
     inline auto MakeMersenne64()
     {
-        return MakeSeededRng<Mersenne64>();
+        return MakeSeededRng<std::mt19937_64>();
     }
 
     /**
@@ -363,7 +361,7 @@ namespace psygine::core::utils::random
     template <typename Seed, typename THasher = std::hash<Seed>>
     auto MakeMersenne32CustomSeededHash(const Seed& seed, THasher hasher = {})
     {
-        return MakeCustomSeededRngHashed<Mersenne32, Seed, THasher>(seed, hasher);
+        return MakeCustomSeededRngHashed<std::mt19937, Seed, THasher>(seed, hasher);
     }
 
     /**
@@ -379,7 +377,7 @@ namespace psygine::core::utils::random
     template <typename Seed, typename THasher = std::hash<Seed>>
     auto MakeMersenne64CustomSeededHash(const Seed& seed, THasher hasher = {})
     {
-        return MakeCustomSeededRngHashed<Mersenne64, Seed, THasher>(seed, hasher);
+        return MakeCustomSeededRngHashed<std::mt19937_64, Seed, THasher>(seed, hasher);
     }
 
     template <std::floating_point T = float>

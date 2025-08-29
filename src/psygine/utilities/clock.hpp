@@ -1,12 +1,15 @@
-﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+//  SPDX-License-Identifier: MIT
+
+// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
 #ifndef PSYGINE_CLOCK_HPP
 #define PSYGINE_CLOCK_HPP
 
-#include "psygine/core/time.hpp"
+#include "time.hpp"
 
-namespace psygine::core::utils::time
+namespace psygine::utilities::time
 {
     /**
      * @brief Represents a Clock class for managing and tracking time.

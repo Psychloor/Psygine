@@ -1,9 +1,12 @@
-﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+//  SPDX-License-Identifier: MIT
+
+// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
-#include "psygine/core/time.hpp"
+#include "time.hpp"
 
-namespace psygine::core::utils::time
+namespace psygine::utilities::time
 {
 
     types::TimePoint Now()

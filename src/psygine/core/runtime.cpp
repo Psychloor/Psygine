@@ -1,7 +1,7 @@
 ﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
-#include "psygine/core/runtime.hpp"
+#include "runtime.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -12,8 +12,8 @@
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
 
-#include "psygine/core/time.hpp"
 #include "psygine/debug/assert.hpp"
+#include "psygine/utilities/time.hpp"
 
 namespace
 {
@@ -214,7 +214,7 @@ namespace psygine::core
 
         running_ = true;
 
-        auto now = utils::time::Now();
+        auto now = utilities::time::Now();
 
         double accumulator = 0.0;
         std::size_t updatesThisFrame = 0;
@@ -229,8 +229,8 @@ namespace psygine::core
             handleEvents();
 
             // Protect some against lag spikes and all, kept within parentheses
-            const double deltaTime = std::min(utils::time::ElapsedSinceSeconds(now), maxTimestep);
-            now = utils::time::Now();
+            const double deltaTime = std::min(utilities::time::ElapsedSinceSeconds(now), maxTimestep);
+            now = utilities::time::Now();
             lastDeltaTime_ = deltaTime;
             accumulator += deltaTime;
 

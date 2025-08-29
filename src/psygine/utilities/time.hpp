@@ -1,4 +1,7 @@
-﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+//  SPDX-License-Identifier: MIT
+
+// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
 #ifndef PSYGINE_TIME_HPP
@@ -6,7 +9,7 @@
 
 #include <chrono>
 
-namespace psygine::core::utils::time
+namespace psygine::utilities::time
 {
     namespace types
     {

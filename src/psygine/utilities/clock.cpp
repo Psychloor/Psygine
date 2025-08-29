@@ -1,9 +1,12 @@
-﻿// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+﻿//  SPDX-FileCopyrightText: 2025 Kevin Blomqvist
+//  SPDX-License-Identifier: MIT
+
+// SPDX-FileCopyrightText: 2025 Kevin Blomqvist
 // SPDX-License-Identifier: MIT
 
-#include "psygine/core/clock.hpp"
+#include "clock.hpp"
 
-namespace psygine::core::utils::time
+namespace psygine::utilities::time
 {
 
     Clock::Clock() :
