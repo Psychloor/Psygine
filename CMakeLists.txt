@@ -34,6 +34,7 @@ set(PSYGINE_PROJECT_SOURCES
 set(PSYGINE_PROJECT_HEADERS
         src/psygine/core/base_state.hpp
         src/psygine/core/resource_manager.hpp
+        src/psygine/core/runtime_config.hpp
         src/psygine/core/runtime.hpp
         src/psygine/core/sdl_raii.hpp
 
