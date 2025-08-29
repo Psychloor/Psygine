@@ -434,7 +434,7 @@ namespace psygine::core
                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 #endif
 
-        // X11
+        // Linux X11/Wayland
 #ifdef SDL_PLATFORM_LINUX
         if (const char* drv = SDL_GetCurrentVideoDriver())
         {
